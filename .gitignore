@@ -1,0 +1,6 @@
+.venv/
+src/__pycache__/
+src/ui/__pycache__/
+.DS_Store
+supervisely
+app_data/

@@ -1,0 +1,18 @@
+{
+    "name": "Preprocess data for mouse project",
+    "type": "app",
+    "version": "2.0.0",
+    "categories": ["videos"],
+    "description": "Prepares training data for mouse detector.",
+    "docker_image": "supervisely/import-export:6.73.351",
+    "instance_version": "6.12.44",
+    "entrypoint": "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000",
+    "port": 8000,
+    "task_location": "workspace_tasks",
+    "poster": "",
+    "icon": "",
+    "icon_cover": true,
+    "headless": false,
+    "icon_background": "#FFFFFF",
+    "context_menu": {"target": ["videos_project"]}
+}
