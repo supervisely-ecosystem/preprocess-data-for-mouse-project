@@ -9,7 +9,6 @@ if sly.is_development():
     load_dotenv("local.env")
     load_dotenv(os.path.expanduser("~/supervisely.env"))
 
-# Initialize Supervisely API
 API: sly.Api = sly.Api.from_env()
 
 # Environment variables
@@ -35,5 +34,5 @@ SPLIT_RATIO: float = 0.8
 
 # Progress indicators
 PROGRESS_BAR: sly.app.widgets.Progress = sly.app.widgets.Progress()
-PROGRESS_BAR_ITEM: sly.app.widgets.Progress = sly.app.widgets.Progress()
-PROGRESS_BAR_FRAME: sly.app.widgets.SlyTqdm = sly.app.widgets.SlyTqdm()
+PROGRESS_BAR_2: sly.app.widgets.Progress = sly.app.widgets.Progress()
+PROGRESS_BAR_3: sly.app.widgets.SlyTqdm = sly.app.widgets.SlyTqdm()

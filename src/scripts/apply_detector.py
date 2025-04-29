@@ -60,20 +60,20 @@ def apply_detector(project_id):
             dataset_id = dataset.id
 
             videos = g.API.video.get_list(dataset_id)
-            with g.PROGRESS_BAR_ITEM(message=f"Detecting videos in {dataset.name}", total=len(videos)) as pbar_item:
+            with g.PROGRESS_BAR_2(message=f"Detecting videos in {dataset.name}", total=len(videos)) as pbar_item:
                 for video in videos:
                     video_id = video.id
                     video_shape = (video.frame_width, video.frame_height)
 
                     iterator = detector.inference_video_id_async(video_id)
-                    predictions = list(g.PROGRESS_BAR_FRAME(iterator, message="Inferring video"))
+                    predictions = list(g.PROGRESS_BAR_3(iterator, message="Inferring video"))
                     
                     frame_range = (0, video.frames_count - 1)
                     frame_to_annotation = frame_index_to_annotation(predictions, frame_range, model_meta)
                     frame_to_annotation = filter_annotation_by_classes(frame_to_annotation, "mouse")
                     video_annotation = annotations_to_video_annotation(frame_to_annotation, obj_classes, video_shape)
 
-                    progress_cb = g.PROGRESS_BAR_FRAME(message="Uploading annotation", total=len(video_annotation.figures))
+                    progress_cb = g.PROGRESS_BAR_3(message="Uploading annotation", total=len(video_annotation.figures))
                     g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
                     pbar_item.update(1)
             pbar_ds.update(1)

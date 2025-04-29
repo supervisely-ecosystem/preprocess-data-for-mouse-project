@@ -38,23 +38,18 @@ def upload_project():
                 train_ds_id = res_dataset.id
 
             video_paths = [os.path.join(dataset.item_dir, video) for video in os.listdir(dataset.item_dir)]
-            with g.PROGRESS_BAR_ITEM(message="Uploading Videos", total=len(video_paths)) as pbar_item:
-                for video_batch in batched(video_paths, batch_size=50):
+            with g.PROGRESS_BAR_2(message="Uploading Videos", total=len(video_paths)) as pbar_video:
+                for video_batch in batched(video_paths, batch_size=10):
                     video_names = [get_file_name_with_ext(video) for video in video_batch]
                     metas = None
                     if dataset.name == "train":
                         metas = [clip_data_map[video] for video in video_batch]
-
                     g.API.video.upload_paths(
                         dataset_id=res_dataset.id,
                         names=video_names,
                         paths=video_batch,
-                        progress_cb=None,
                         metas=metas,
-                        infos=None,
-                        item_progress=pbar_item,
                     )
-                    pbar_item.update(len(video_batch))
+                    pbar_video.update(len(video_batch))
             pbar.update(1)
     return res_project.id
-

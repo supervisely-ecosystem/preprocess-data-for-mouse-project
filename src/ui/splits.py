@@ -23,8 +23,10 @@ card = Card(
 )
 card.lock()
 
-@button.click
-def confirm_splits():
-    g.SPLIT_RATIO = train_val_splits.get_train_split_percent() / 100
-    utils.button_toggle(button, [train_val_splits, validation_text], [output])
+def disable():
+    train_val_splits.disable()
+    button.disable()
 
+def enable():
+    train_val_splits.enable()
+    button.enable()

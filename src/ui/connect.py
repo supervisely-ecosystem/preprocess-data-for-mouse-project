@@ -10,7 +10,7 @@ import src.ui.splits as splits
 import src.ui.output as output
 
 # Step 2
-session_selector = SelectAppSession(g.TEAM_ID, "deployed_nn")
+session_selector = SelectAppSession(g.TEAM_ID, "deployed_nn", True)
 
 validation_text = Text(text="")
 validation_text.hide()
@@ -26,13 +26,13 @@ card = Card(
 )
 card.lock()
 
-@button.click
-def connect_model():
-    # is_valid = validate_model()
-    is_valid = True
-    if is_valid:
-        g.SESSION_ID = session_selector.get_selected_id()
-        utils.button_toggle(button, [session_selector], [splits, output])
+def disable():
+    session_selector.disable()
+    button.disable()
+
+def enable():
+    session_selector.enable()
+    button.enable()
 
 def validate_model():
     validation_text.hide()

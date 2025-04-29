@@ -30,8 +30,12 @@ card = Card(
     content=container,
 )
 
+def disable():
+    project_thumbnail.disable()
+    use_cache_checkbox.disable()
+    button.disable()
 
-# @TODO: Cards lock/unlock
-@button.click
-def confirm_project():
-    utils.button_toggle(button, [project_thumbnail], [connect, splits, output])
+def enable():
+    project_thumbnail.enable()
+    use_cache_checkbox.enable()
+    button.enable()
