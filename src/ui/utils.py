@@ -38,7 +38,7 @@ def _handle_reselect_state(module, stepper: Stepper, step_id: int, following_ste
     stepper.set_active_step(step_id)
 
 def set_button_params(button: Button, is_reselect: bool = False) -> None:
-    if button.text == "Upload":
+    if button.text == "Start":
         return
     elif is_reselect:
         button.text = "Select"

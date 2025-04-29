@@ -8,7 +8,7 @@ class OutputStep(BaseStep):
         self.project_thumbnail = ProjectThumbnail()
         self.project_thumbnail.hide()
         
-        widgets = [self.project_thumbnail, g.PROGRESS_BAR, g.PROGRESS_BAR_2]
+        widgets = [self.project_thumbnail, g.PROGRESS_BAR, g.PROGRESS_BAR_2, g.PROGRESS_BAR_3]
         
         super().__init__(
             title="Output Project",
@@ -17,7 +17,7 @@ class OutputStep(BaseStep):
             lock_message="Select train/val splits to unlock"
         )
         
-        self.button.text = "Upload"
+        self.button.text = "Start"
     
     def set(self, project: ProjectInfo) -> None:
         g.API.task.set_output_project(g.TASK_ID, project.id, project.name, project.image_preview_url)
