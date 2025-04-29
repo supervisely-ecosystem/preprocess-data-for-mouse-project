@@ -327,6 +327,7 @@ def make_negatives(pos_df: pd.DataFrame, output_dir: str, min_size, target_lengt
     infos = []
 
     with g.PROGRESS_BAR(message="Making negative training clips", total=len(grouped)) as pbar:
+        g.PROGRESS_BAR.show()
         for i, (video_file, group_df) in enumerate(grouped):
             skip_ranges = group_df[["start", "end"]].values.tolist()
             infos += make_neg_clips_for_tag(
