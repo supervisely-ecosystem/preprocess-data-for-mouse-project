@@ -26,8 +26,7 @@ def confirm_project():
 
 @connect.button.click
 def connect_model():
-    # is_valid = connect.validate_model()
-    is_valid = True
+    is_valid = connect.validate_model()
     if is_valid:
         g.SESSION_ID = connect.session_selector.get_selected_id()
         utils.button_toggle(connect.button, stepper, 2, [connect.session_selector], [splits, output])
