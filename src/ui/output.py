@@ -13,7 +13,7 @@ project_thumbnail.hide()
 container = Container(widgets=[project_thumbnail, validation_text, button, g.PROGRESS_BAR, g.PROGRESS_BAR_2])
 card = Card(
     title="Output Project",
-    description="",
+    description="Upload project to Supervisely and apply detector. Result project will contain 'train' dataset with split clips and 'test' dataset with original videos.",
     content=container,
     lock_message="Select train/val splits to unlock",
 )

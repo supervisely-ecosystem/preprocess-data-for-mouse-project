@@ -17,7 +17,7 @@ button = Button(text="Select")
 container = Container(widgets=[train_val_splits, validation_text, button])
 card = Card(
     title="Train/Val Split",
-    description="",
+    description="Split project into train/val sets",
     content=container,
     lock_message="Connect model to unlock",
 )
