@@ -1,41 +1,29 @@
-from supervisely.app.widgets import Card, ProjectThumbnail, Button, Container, Text, Checkbox
-import src.ui.utils as utils
+from supervisely.app.widgets import ProjectThumbnail, Checkbox, Text
 import src.globals as g
-
-import src.ui.splits as splits
-import src.ui.connect as connect
-import src.ui.output as output
 from supervisely.project.download import is_cached
+from src.ui.base_step import BaseStep
 
+class InputStep(BaseStep):
+    def __init__(self):
+        self.project_thumbnail = ProjectThumbnail(g.PROJECT_INFO)
+        
+        if is_cached(g.PROJECT_ID):
+            _text = "Use cached data stored on the agent to optimize project download"
+        else:
+            _text = "Cache data on the agent to optimize project download for future trainings"
+        
+        self.use_cache_text = Text(_text)
+        self.use_cache_checkbox = Checkbox(self.use_cache_text, checked=True)
+        
+        widgets = [self.project_thumbnail, self.use_cache_checkbox]
+        
+        super().__init__(
+            title="Input Project",
+            description="Selected project from which items and annotations will be downloaded",
+            widgets=widgets
+        )
+        
+        self.show_validation("Project selected", "success")
+        self.hide_validation()
 
-# Step 1
-project_thumbnail = ProjectThumbnail(g.PROJECT_INFO)
-
-if is_cached(g.PROJECT_ID):
-    _text = "Use cached data stored on the agent to optimize project download"
-else:
-    _text = "Cache data on the agent to optimize project download for future trainings"
-
-use_cache_text = Text(_text)
-use_cache_checkbox = Checkbox(use_cache_text, checked=True)
-
-validation_text = Text(text="")
-validation_text.hide()
-
-button = Button("Select")
-container = Container(widgets=[project_thumbnail, use_cache_checkbox, validation_text, button])
-card = Card(
-    title="Input Project",
-    description="Selected project from which items and annotations will be downloaded",
-    content=container,
-)
-
-def disable():
-    project_thumbnail.disable()
-    use_cache_checkbox.disable()
-    button.disable()
-
-def enable():
-    project_thumbnail.enable()
-    use_cache_checkbox.enable()
-    button.enable()
+input = InputStep()

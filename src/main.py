@@ -1,12 +1,11 @@
-import os
 import supervisely as sly
 from supervisely.app.widgets import Container, Stepper
 
 import src.globals as g
-import src.ui.connect as connect
-import src.ui.input as input
-import src.ui.splits as splits
-import src.ui.output as output
+from src.ui.input import input
+from src.ui.connect import connect
+from src.ui.splits import splits
+from src.ui.output import output
 import src.ui.utils as utils
 from src.scripts.download_project import download_project
 from src.scripts.split_project import split_project
@@ -22,7 +21,7 @@ app: sly.Application = sly.Application(layout=layout)
 # Step 1. Input
 @input.button.click
 def confirm_project():
-    utils.button_toggle(input.button, stepper, 1, [input.project_thumbnail], [connect, splits, output])
+    utils.button_toggle(input, stepper, 1, [connect, splits, output])
 
 # Step 2. Connect
 @connect.button.click
@@ -30,13 +29,13 @@ def connect_model():
     is_valid = connect.validate_model()
     if is_valid:
         g.SESSION_ID = connect.session_selector.get_selected_id()
-        utils.button_toggle(connect.button, stepper, 2, [connect.session_selector], [splits, output])
+        utils.button_toggle(connect, stepper, 2, [splits, output])
 
 # Step 3. Splits
 @splits.button.click
 def confirm_splits():
-    g.SPLIT_RATIO = splits.train_val_splits.get_train_split_percent() / 100
-    utils.button_toggle(splits.button, stepper, 3, [splits.train_val_splits, splits.validation_text], [output])
+    g.SPLIT_RATIO = splits.get_train_split_percent() / 100
+    utils.button_toggle(splits, stepper, 3, [output])
 
 # Step 4. Output
 @output.button.click
@@ -44,7 +43,7 @@ def process_project():
     input.disable()
     connect.disable()
     splits.disable()
-    output.validation_text.hide()
+    output.hide_validation()
     utils.show_progress_bars()
     try:
         download_project()
@@ -54,8 +53,7 @@ def process_project():
         apply_detector(project.id)
         output.set(project)
     except Exception as e:
-        output.validation_text.set(f"Error: {str(e)}", "error")
-        output.validation_text.show()
+        output.show_validation(f"Error: {str(e)}", "error")
         input.enable()
         connect.enable()
         splits.enable()
