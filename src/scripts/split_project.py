@@ -72,6 +72,7 @@ def split_project(seed=42):
     os.makedirs(test_ann_dir, exist_ok=True)
     
     with g.PROGRESS_BAR(message="Splitting project", total=len(train_videos) + len(test_videos)) as pbar:
+        g.PROGRESS_BAR.show()
         # Copy train videos and annotations
         for video_path in train_videos:
             video_filename = os.path.basename(video_path)
@@ -109,6 +110,7 @@ def split_project(seed=42):
             ann_filename = os.path.basename(ann_path)
             shutil.copy2(ann_path, os.path.join(test_ann_dir, ann_filename))
             pbar.update(1)
+    g.PROGRESS_BAR.hide()
 
     # Project files
     meta_path = os.path.join(g.PROJECT_DIR, "meta.json")

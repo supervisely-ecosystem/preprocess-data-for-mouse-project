@@ -56,17 +56,21 @@ def apply_detector(project_id):
 
     datasets = g.API.dataset.get_list(project_id, recursive=True)
     with g.PROGRESS_BAR(message=f"Detecting datasets", total=len(datasets)) as pbar_ds:
+        g.PROGRESS_BAR.show()
         for dataset in datasets:
             dataset_id = dataset.id
 
             videos = g.API.video.get_list(dataset_id)
-            with g.PROGRESS_BAR_2(message=f"Detecting videos in {dataset.name}", total=len(videos)) as pbar_item:
+            with g.PROGRESS_BAR_2(message=f"Detecting videos in dataset: '{dataset.name}'", total=len(videos)) as pbar_item:
+                g.PROGRESS_BAR_2.show()
                 for video in videos:
                     video_id = video.id
                     video_shape = (video.frame_width, video.frame_height)
 
                     iterator = detector.inference_video_id_async(video_id)
+                    g.PROGRESS_BAR_3.show()
                     predictions = list(g.PROGRESS_BAR_3(iterator, message="Inferring video"))
+                    g.PROGRESS_BAR_3.hide()
                     
                     frame_range = (0, video.frames_count - 1)
                     frame_to_annotation = frame_index_to_annotation(predictions, frame_range, model_meta)
@@ -77,3 +81,5 @@ def apply_detector(project_id):
                     g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
                     pbar_item.update(1)
             pbar_ds.update(1)
+    g.PROGRESS_BAR_2.hide()
+    g.PROGRESS_BAR.hide()

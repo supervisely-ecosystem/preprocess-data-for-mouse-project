@@ -225,6 +225,7 @@ def make_positives(input_dir: str, output_dir: str, min_size):
     infos = []
 
     with g.PROGRESS_BAR(message="Making positive training clips", total=len(paths)) as pbar:
+        g.PROGRESS_BAR.show()
         for i, video_file in enumerate(paths):
             ann_file = video_file.parent.parent / f"ann/{video_file.name}.json"
             if not ann_file.exists():
@@ -235,7 +236,7 @@ def make_positives(input_dir: str, output_dir: str, min_size):
                 infos += make_pos_clips_for_tag(video_file, ann_file, output_dir, min_size, tag, label)
             logger.info(f"Processed {i+1}/{len(paths)} videos for positive clips")
             pbar.update(1)
-
+    g.PROGRESS_BAR.hide()
     return infos
 
 def make_neg_clips_for_tag(
@@ -333,6 +334,7 @@ def make_negatives(pos_df: pd.DataFrame, output_dir: str, min_size, target_lengt
             )
             logger.info(f"Processed {i+1}/{len(grouped)} videos for negative clips")
             pbar.update(1)
+    g.PROGRESS_BAR.hide()
     return infos
 
 def unique_video_names(paths: list):

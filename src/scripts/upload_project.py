@@ -4,9 +4,10 @@ import pandas as pd
 from supervisely.project.video_project import VideoProject, VideoDataset, OpenMode
 from supervisely import batched
 from supervisely.project.project import ProjectType
+from supervisely.api.project_api import ProjectInfo
 from supervisely.io.fs import get_file_name_with_ext
 
-def upload_project():
+def upload_project() -> ProjectInfo:
     clips_csv = os.path.join(g.SPLIT_PROJECT_DIR, "clips.csv")
     clips_df = pd.read_csv(clips_csv)
 
@@ -25,6 +26,7 @@ def upload_project():
 
     train_ds_id = None
     with g.PROGRESS_BAR(message="Uploading Datasets", total=len(project.datasets)) as pbar:
+        g.PROGRESS_BAR.show()
         for dataset in project.datasets:
             dataset: VideoDataset
             dataset_name = dataset.name
@@ -39,6 +41,7 @@ def upload_project():
 
             video_paths = [os.path.join(dataset.item_dir, video) for video in os.listdir(dataset.item_dir)]
             with g.PROGRESS_BAR_2(message="Uploading Videos", total=len(video_paths)) as pbar_video:
+                g.PROGRESS_BAR_2.show()
                 for video_batch in batched(video_paths, batch_size=10):
                     video_names = [get_file_name_with_ext(video) for video in video_batch]
                     metas = None
@@ -52,4 +55,6 @@ def upload_project():
                     )
                     pbar_video.update(len(video_batch))
             pbar.update(1)
-    return res_project.id
+    g.PROGRESS_BAR.hide()
+    g.PROGRESS_BAR_2.hide()
+    return res_project

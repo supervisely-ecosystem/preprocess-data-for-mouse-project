@@ -1,6 +1,6 @@
 from typing import List
 from supervisely.app.widgets import Button, Widget, Stepper
-
+import src.globals as g
 def button_toggle(button: Button, stepper: Stepper, step_id: int, step_widgets: List[Widget], following_steps: list = []) -> None:
     if button.text == "Select":
         set_button_params(button, False)
@@ -30,3 +30,13 @@ def set_button_params(button: Button, is_reselect: bool = False) -> None:
         button.text = "Reselect"
         button.icon = "zmdi zmdi-refresh"
         button.plain = True
+
+def show_progress_bars():
+    g.PROGRESS_BAR.show()
+    g.PROGRESS_BAR_2.show()
+    g.PROGRESS_BAR_3.show()
+
+def hide_progress_bars():
+    g.PROGRESS_BAR.hide()
+    g.PROGRESS_BAR_2.hide()
+    g.PROGRESS_BAR_3.hide()

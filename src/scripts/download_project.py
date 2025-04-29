@@ -53,6 +53,7 @@ def download_with_cache(dataset_infos: List[DatasetInfo], total_images: int) -> 
         unit_scale=True,
         unit_divisor=1024,
     ) as pbar:
+        g.PROGRESS_BAR.show()
         copy_from_cache(
             project_id=g.PROJECT_ID,
             dest_dir=g.PROJECT_DIR,

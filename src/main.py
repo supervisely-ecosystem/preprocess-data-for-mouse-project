@@ -19,11 +19,12 @@ layout: Container = Container(widgets=[stepper])
 
 app: sly.Application = sly.Application(layout=layout)
 
-
+# Step 1. Input
 @input.button.click
 def confirm_project():
     utils.button_toggle(input.button, stepper, 1, [input.project_thumbnail], [connect, splits, output])
 
+# Step 2. Connect
 @connect.button.click
 def connect_model():
     is_valid = connect.validate_model()
@@ -31,31 +32,27 @@ def connect_model():
         g.SESSION_ID = connect.session_selector.get_selected_id()
         utils.button_toggle(connect.button, stepper, 2, [connect.session_selector], [splits, output])
 
+# Step 3. Splits
 @splits.button.click
 def confirm_splits():
     g.SPLIT_RATIO = splits.train_val_splits.get_train_split_percent() / 100
     utils.button_toggle(splits.button, stepper, 3, [splits.train_val_splits, splits.validation_text], [output])
 
+# Step 4. Output
 @output.button.click
 def process_project():
     input.disable()
     connect.disable()
     splits.disable()
     output.validation_text.hide()
-    g.PROGRESS_BAR.show()
-    g.PROGRESS_BAR_2.show()
-    g.PROGRESS_BAR_3.show()
+    utils.show_progress_bars()
     try:
-        # if not os.path.exists(g.PROJECT_DIR): # debug
         download_project()
-        
-        # if not os.path.exists(g.SPLIT_PROJECT_DIR): # debug
         split_project()
         make_training_clips()
-        
-        project_id = upload_project()
-        apply_detector(project_id)
-
+        project = upload_project()
+        apply_detector(project.id)
+        output.set(project)
     except Exception as e:
         output.validation_text.set(f"Error: {str(e)}", "error")
         output.validation_text.show()
@@ -63,7 +60,4 @@ def process_project():
         connect.enable()
         splits.enable()
     finally:
-        g.PROGRESS_BAR.hide()
-        g.PROGRESS_BAR_2.hide()
-        g.PROGRESS_BAR_3.hide()
-        output.button.enable()
+        utils.hide_progress_bars()
