@@ -10,7 +10,7 @@ import src.ui.splits as splits
 import src.ui.output as output
 
 # Step 2
-session_selector = SelectAppSession(g.TEAM_ID, "deployed_nn", True)
+session_selector = SelectAppSession(g.TEAM_ID, ["deployed_nn"], True)
 
 validation_text = Text(text="")
 validation_text.hide()
