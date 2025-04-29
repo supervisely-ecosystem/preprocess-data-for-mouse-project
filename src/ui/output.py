@@ -21,6 +21,7 @@ class OutputStep(BaseStep):
     
     def set(self, project: ProjectInfo) -> None:
         g.API.task.set_output_project(g.TASK_ID, project.id, project.name, project.image_preview_url)
+        g.SYNC_MANAGER._save_cache()
         self.project_thumbnail.set(project)
         self.show_validation("Project uploaded successfully", "success")
         self.project_thumbnail.show()

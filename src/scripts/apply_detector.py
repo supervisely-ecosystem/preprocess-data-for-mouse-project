@@ -1,10 +1,12 @@
 import src.globals as g
+from supervisely.api.video.video_api import VideoInfo
 from supervisely.nn.inference.session import Session
 from supervisely.video_annotation.video_annotation import VideoAnnotation, VideoObjectCollection, FrameCollection, VideoFigure
 from supervisely.video_annotation.frame import Frame
 from supervisely.video_annotation.video_object import VideoObject
 from supervisely.annotation.annotation import Annotation, ObjClassCollection
 from supervisely import logger
+from typing import List
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
     annotation_for_frame: Annotation
@@ -29,9 +31,7 @@ def frame_index_to_annotation(annotation_predictions, frames_range, model_meta):
     return frame_index_to_annotation_dict
 
 
-def annotations_to_video_annotation(
-    frame_to_annotation: dict, obj_classes: ObjClassCollection, video_shape: tuple
-):
+def annotations_to_video_annotation(frame_to_annotation: dict, obj_classes: ObjClassCollection, video_shape: tuple):
     name2vid_obj_cls = {x.name: VideoObject(x) for x in obj_classes}
     video_obj_classes = VideoObjectCollection(list(name2vid_obj_cls.values()))
     frames = []
@@ -49,37 +49,43 @@ def annotations_to_video_annotation(
     logger.info(f"Annotation has been processed: {len(frame_to_annotation)} frames")
     return video_ann
 
-def apply_detector(project_id):
+def apply_detector(video_infos: List[VideoInfo]) -> None:
+    if not video_infos:
+        logger.info("No videos to process with detector")
+        return
+        
     detector = Session(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
     obj_classes = model_meta.obj_classes
 
-    datasets = g.API.dataset.get_list(project_id, recursive=True)
-    with g.PROGRESS_BAR(message=f"Detecting datasets", total=len(datasets)) as pbar_ds:
+    uploaded_videos = g.SYNC_MANAGER.get_uploaded_videos()
+
+    with g.PROGRESS_BAR(message="Applying detector", total=len(video_infos)) as pbar:
         g.PROGRESS_BAR.show()
-        for dataset in datasets:
-            dataset_id = dataset.id
+        for video in uploaded_videos:
+            try:
+                video_id = video.id
+                video_shape = (video.frame_width, video.frame_height)
 
-            videos = g.API.video.get_list(dataset_id)
-            with g.PROGRESS_BAR_2(message=f"Detecting videos in dataset: '{dataset.name}'", total=len(videos)) as pbar_item:
+                iterator = detector.inference_video_id_async(video_id)
                 g.PROGRESS_BAR_2.show()
-                for video in videos:
-                    video_id = video.id
-                    video_shape = (video.frame_width, video.frame_height)
+                predictions = list(g.PROGRESS_BAR_2(iterator, message="Inferring video"))
+                g.PROGRESS_BAR_2.hide()
+                
+                frame_range = (0, video.frames_count - 1)
+                frame_to_annotation = frame_index_to_annotation(predictions, frame_range, model_meta)
+                frame_to_annotation = filter_annotation_by_classes(frame_to_annotation, "mouse")
+                video_annotation = annotations_to_video_annotation(frame_to_annotation, obj_classes, video_shape)
 
-                    iterator = detector.inference_video_id_async(video_id)
-                    g.PROGRESS_BAR_3.show()
-                    predictions = list(g.PROGRESS_BAR_3(iterator, message="Inferring video"))
-                    g.PROGRESS_BAR_3.hide()
-                    
-                    frame_range = (0, video.frames_count - 1)
-                    frame_to_annotation = frame_index_to_annotation(predictions, frame_range, model_meta)
-                    frame_to_annotation = filter_annotation_by_classes(frame_to_annotation, "mouse")
-                    video_annotation = annotations_to_video_annotation(frame_to_annotation, obj_classes, video_shape)
-
-                    progress_cb = g.PROGRESS_BAR_3(message="Uploading annotation", total=len(video_annotation.figures))
-                    g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
-                    pbar_item.update(1)
-            pbar_ds.update(1)
-    g.PROGRESS_BAR_2.hide()
+                progress_cb = g.PROGRESS_BAR_2(message="Uploading annotation", total=len(video_annotation.figures))
+                g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
+                g.SYNC_MANAGER.mark_as_detected(video.name)
+                logger.info(f"Successfully processed video {video.name} with detector")
+            except Exception as e:
+                logger.error(f"Failed to process video {video.name} with detector: {str(e)}")
+                raise
+            pbar.update(1)
     g.PROGRESS_BAR.hide()
+
+    for video in g.NEW_VIDEOS:
+        g.SYNC_MANAGER.mark_as_processed(video.name)

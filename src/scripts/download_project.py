@@ -11,6 +11,7 @@ from supervisely.project.download import (
     get_cache_size,
     is_cached,
 )
+from .sync_manager import VideoInfo
 
 def get_cache_log_message(cached: bool, to_download: List[DatasetInfo]) -> str:
     if not cached:
@@ -76,10 +77,25 @@ def download_no_cache(dataset_infos: List[DatasetInfo], total_images: int) -> No
         )
     g.PROGRESS_BAR.hide()
 
-
 def download_project() -> None:
+    """Download only new videos from project"""
+    if not g.NEW_VIDEOS:
+        logger.info("No new videos to download")
+        return
+
+    # Получаем все датасеты из проекта
     dataset_infos = [dataset for _, dataset in g.API.dataset.tree(g.PROJECT_ID)]
+    
+    # Фильтруем датасеты, содержащие новые видео
+    target_datasets = set(video.dataset for video in g.NEW_VIDEOS)
+    dataset_infos = [ds for ds in dataset_infos if ds.name in target_datasets]
+    
+    if not dataset_infos:
+        logger.info("No datasets with new videos found")
+        return
+
     total_images = sum(ds_info.images_count for ds_info in dataset_infos)
+    
     if not g.USE_CACHE or sly.is_development():
         download_no_cache(dataset_infos, total_images)
         VideoProject(g.PROJECT_DIR, OpenMode.READ)

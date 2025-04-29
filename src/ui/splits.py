@@ -1,10 +1,11 @@
-from supervisely.app.widgets import TrainValSplits
+from supervisely.app.widgets import TrainValSplits, RandomSplitsTable
 import src.globals as g
 from src.ui.base_step import BaseStep
 
 class SplitsStep(BaseStep):
     def __init__(self):
-        self.train_val_splits = TrainValSplits(g.PROJECT_ID, tags_splits=False, datasets_splits=False)
+        self.train_val_splits = RandomSplitsTable(items_count=100)
+        self.train_val_splits.hide()
         
         widgets = [self.train_val_splits]
         

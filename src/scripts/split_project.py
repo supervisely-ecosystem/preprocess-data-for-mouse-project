@@ -5,13 +5,16 @@ import src.globals as g
 from supervisely import logger
 from supervisely.video_annotation.key_id_map import KeyIdMap
 from supervisely.io.json import dump_json_file
+from .sync_manager import VideoInfo
+from typing import List
 
-def find_video_paths(base_dir):
+def find_video_paths(base_dir, target_videos: set):
     video_paths = []
     
     for root, dirs, files in os.walk(base_dir):
         if os.path.basename(root) == "video":
-            video_files = [os.path.join(root, f) for f in files if f.lower().endswith('.mp4')]
+            video_files = [os.path.join(root, f) for f in files 
+                         if f.lower().endswith('.mp4') and f in target_videos]
             video_paths.extend(video_files)
     
     return video_paths
@@ -34,12 +37,14 @@ def get_annotation_path(video_path):
     return ann_path
 
 def split_project(seed=42):
+    if not g.NEW_VIDEOS:
+        logger.info("No new videos to split")
+        return
+        
     # Set random seed for reproducibility
     random.seed(seed)
-    
-    # Find all video paths
-    video_paths = find_video_paths(g.PROJECT_DIR)
-    
+    target_videos = {video.name for video in g.NEW_VIDEOS}
+    video_paths = find_video_paths(g.PROJECT_DIR, target_videos)
     if not video_paths:
         logger.warn(f"No videos found in {g.PROJECT_DIR}")
         return

@@ -10,6 +10,8 @@ from supervisely.io.fs import clean_dir
 from supervisely.io.json import dump_json_file
 from pathlib import Path
 from supervisely.video_annotation.video_annotation import VideoAnnotation
+from src.scripts.sync_manager import SyncManager, VideoMetadata
+from typing import List
 
 def get_video_dimensions(video_path):
     cmd = [
@@ -211,11 +213,12 @@ def make_pos_clips_for_tag(
 
     return info
 
-def make_positives(input_dir: str, output_dir: str, min_size):
+def make_positives(input_dir: str, output_dir: str, min_size: int, target_videos: set):
     p = Path(input_dir)
     paths = list(p.rglob("*.MP4"))
     paths += list(p.rglob("*.mp4"))
-    logger.info(f"Found {len(paths)} video files.")
+    paths = [p for p in paths if p.name in target_videos]
+    logger.info(f"Found {len(paths)} video files to process.")
 
     # find duplicates
     paths = unique_video_names(paths)
@@ -356,6 +359,10 @@ def remove_train_videos():
     clean_dir(train_ann_dir)
 
 def make_training_clips(min_size=480):
+    if not g.NEW_VIDEOS:
+        logger.info("No new videos to process")
+        return None
+        
     csv_path = g.SPLIT_PROJECT_DIR
     train_dir = os.path.join(g.SPLIT_PROJECT_DIR, "train")
     output_dir = os.path.join(train_dir, "datasets")
@@ -365,9 +372,10 @@ def make_training_clips(min_size=480):
     train_dir = Path(train_dir)
     train_dir.mkdir(parents=True, exist_ok=True)
     
+    target_videos = {video.name for video in g.NEW_VIDEOS}
     # Create positive clips
     logger.info("Creating positive clips...")
-    pos_infos = make_positives(input_dir=train_dir, output_dir=output_dir, min_size=min_size)
+    pos_infos = make_positives(input_dir=train_dir, output_dir=output_dir, min_size=min_size, target_videos=target_videos)
     if not pos_infos:
         logger.error("No positive clips created. Check annotations and videos.")
         return None
@@ -376,6 +384,20 @@ def make_training_clips(min_size=480):
     pos_csv_path = os.path.join(csv_path, "positives.csv")
     pos_df.to_csv(pos_csv_path, index=False)
     logger.info(f"Saved {len(pos_infos)} positive clips to '{pos_csv_path}'")
+    
+    for _, row in pos_df.iterrows():
+        clip_name = os.path.basename(row["clip_file"])
+        original_video = os.path.basename(row["orig_file"])
+        g.SYNC_MANAGER.add_clip(VideoMetadata(
+            name=clip_name,
+            original_name=clip_name,
+            dataset="train",
+            is_clip=True,
+            original_video=original_video,
+            start_frame=row["start"],
+            end_frame=row["end"],
+            label=row["label"]
+        ))
     
     # Calculate average frame range length per video file
     pos_df['range_length'] = pos_df['end'] - pos_df['start'] + 1  # +1 because end frame is inclusive
@@ -393,6 +415,20 @@ def make_training_clips(min_size=480):
     neg_csv_path = os.path.join(csv_path, "negatives.csv")
     neg_df.to_csv(neg_csv_path, index=False)
     logger.info(f"Saved {len(neg_infos)} negative clips to '{neg_csv_path}'")
+    
+    for _, row in neg_df.iterrows():
+        clip_name = os.path.basename(row["clip_file"])
+        original_video = os.path.basename(row["orig_file"])
+        g.SYNC_MANAGER.add_clip(VideoMetadata(
+            name=clip_name,
+            original_name=clip_name,
+            dataset="train",
+            is_clip=True,
+            original_video=original_video,
+            start_frame=row["start"],
+            end_frame=row["end"],
+            label=row["label"]
+        ))
     
     # concatenate positive and negative clips
     clips_df = pd.concat([pos_df, neg_df])
