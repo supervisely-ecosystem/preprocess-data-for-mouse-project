@@ -15,7 +15,7 @@ class InputStep(BaseStep):
             content=self.source_project_thumbnail
         )
         
-        self.target_project_thumbnail = ProjectThumbnail(g.DST_PROJECT)
+        self.target_project_thumbnail = ProjectThumbnail(g.DST_PROJECT_INFO)
         self.target_project_field = Field(
             title="Target Project",
             description="Data from this project will be used for training",

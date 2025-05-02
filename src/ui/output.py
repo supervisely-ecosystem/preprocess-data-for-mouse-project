@@ -20,8 +20,8 @@ class OutputStep(BaseStep):
         self.button.text = "Start"
     
     def set(self) -> None:
-        g.API.task.set_output_project(g.TASK_ID, g.DST_PROJECT_ID, g.DST_PROJECT_NAME, g.DST_PROJECT.image_preview_url)
-        self.project_thumbnail.set(g.DST_PROJECT)
+        g.API.task.set_output_project(g.TASK_ID, g.DST_PROJECT_ID, g.DST_PROJECT_NAME, g.DST_PROJECT_INFO.image_preview_url)
+        self.project_thumbnail.set(g.DST_PROJECT_INFO)
         self.show_validation("Training data uploaded successfully", "success")
         self.project_thumbnail.show()
         self.button.disable()
