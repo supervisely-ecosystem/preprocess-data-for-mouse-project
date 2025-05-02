@@ -97,21 +97,3 @@ def process_project():
         raise e
     finally:
         utils.hide_progress_bars()
-
-# EASY
-# 1. Первый запуск скачиваем все видео из проекта и записываем имена в кеш.
-# 2. Последующие запуски берут имена видео из исходного проекта и проверяют наличие видео в кеше
-# 3. Если видео нет в кеше, то оно скачивается, обрабатывается и добавляется в кеш. Если видео есть в кеше, то оно пропускается
-
-# Think
-# Структра кеша
-# {
-#     "source_project_id": 555,
-#     "target_project_id": 666,
-#     "uploaded_videos": {"video_name" or "video_id": {"video_id": 123, "video_name": "video_name", "dataset": "dataset_name", "is_test": False, "is_detected": False, "clips": {"clip_name" or "clip_id": {"clip_id": 123, "clip_name": "clip_name", "dataset": "dataset_name", "is_test": False, "is_detected": False}}},
-#     "detected_videos": {"video_name" or "video_id": {"video_id": 123, "video_name": "video_name", "dataset": "dataset_name", "is_test": False, "is_detected": True, "clips": {"clip_name" or "clip_id": {"clip_id": 123, "clip_name": "clip_name", "dataset": "dataset_name", "is_test": False, "is_detected": True}}},
-# }
-
-# Later
-# Сохраняем исходный проект в кеш агента, при последующих запусках добавляем новые видео в кешированный проект на агенте
-# Сохраняем итоговый проект в кеш агента, при последующих запусках добавляем новые видео в кешированный проект на агенте
