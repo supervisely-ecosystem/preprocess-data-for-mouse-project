@@ -8,7 +8,7 @@ class OutputStep(BaseStep):
         self.project_thumbnail = ProjectThumbnail()
         self.project_thumbnail.hide()
         
-        widgets = [self.project_thumbnail, g.PROGRESS_BAR, g.PROGRESS_BAR_2, g.PROGRESS_BAR_3]
+        widgets = [self.project_thumbnail, g.PROGRESS_BAR, g.PROGRESS_BAR_2]
         
         super().__init__(
             title="Output Project",
@@ -19,10 +19,10 @@ class OutputStep(BaseStep):
         
         self.button.text = "Start"
     
-    def set(self, project: ProjectInfo) -> None:
-        g.API.task.set_output_project(g.TASK_ID, project.id, project.name, project.image_preview_url)
-        self.project_thumbnail.set(project)
-        self.show_validation("Project uploaded successfully", "success")
+    def set(self) -> None:
+        g.API.task.set_output_project(g.TASK_ID, g.DST_PROJECT_ID, g.DST_PROJECT_NAME, g.DST_PROJECT.image_preview_url)
+        self.project_thumbnail.set(g.DST_PROJECT)
+        self.show_validation("Training data uploaded successfully", "success")
         self.project_thumbnail.show()
         self.button.disable()
 

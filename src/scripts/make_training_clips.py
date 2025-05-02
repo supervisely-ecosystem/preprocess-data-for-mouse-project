@@ -10,6 +10,7 @@ from supervisely.io.fs import clean_dir
 from supervisely.io.json import dump_json_file
 from pathlib import Path
 from supervisely.video_annotation.video_annotation import VideoAnnotation
+from src.scripts.video_metadata import VideoMetaData
 
 def get_video_dimensions(video_path):
     cmd = [
@@ -399,6 +400,43 @@ def make_training_clips(min_size=480):
     clips_csv_path = os.path.join(csv_path, "clips.csv")
     clips_df.to_csv(clips_csv_path, index=False)
     logger.info(f"Saved {len(clips_df)} total clips to '{clips_csv_path}'")
+    
+    # Add clips information to g.TRAIN_VIDEOS
+    # Create a dictionary for quick video search by filename
+    video_dict = {}
+    for video in g.TRAIN_VIDEOS:
+        video_name = os.path.basename(video.path) if video.path else video.name
+        video_dict[video_name] = video
+    
+    # For each clip, create a VideoMetaData object and add it to the corresponding source video
+    for _, row in clips_df.iterrows():
+        # Get the filename of the source video
+        source_file = os.path.basename(row['orig_file'])
+        
+        # Find the corresponding VideoMetaData object
+        if source_file in video_dict:
+            source_video = video_dict[source_file]
+            
+            # Define the label
+            if isinstance(row['label'], int):
+                # Ensure the label is within the valid range
+                if 0 <= row['label'] < len(g.CLIP_LABELS):
+                    label = g.CLIP_LABELS[row['label']]
+                else:
+                    label = f"label_{row['label']}"
+            else:
+                label = row['label']
+            
+            clip = VideoMetaData.create_clip(
+                source_video=source_video,
+                name=os.path.basename(row['clip_file']),
+                start_frame=row['start'],
+                end_frame=row['end'],
+                label=label
+            )
+            
+            clip.path = row['clip_file']
+            source_video.clips.append(clip)
 
     # Remove original train videos
     remove_train_videos()

@@ -52,9 +52,7 @@ def set_button_params(button: Button, is_reselect: bool = False) -> None:
 def show_progress_bars():
     g.PROGRESS_BAR.show()
     g.PROGRESS_BAR_2.show()
-    g.PROGRESS_BAR_3.show()
 
 def hide_progress_bars():
     g.PROGRESS_BAR.hide()
     g.PROGRESS_BAR_2.hide()
-    g.PROGRESS_BAR_3.hide()

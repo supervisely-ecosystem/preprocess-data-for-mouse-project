@@ -1,8 +1,8 @@
 import os
-from typing import Optional, Any
-
 import supervisely as sly
 from dotenv import load_dotenv
+from supervisely.app.widgets import Progress
+from supervisely.project.download import _get_cache_dir
 
 # Load environment variables
 if sly.is_development():
@@ -22,10 +22,14 @@ PROJECT_ID: int = sly.env.project_id()
 PROJECT_INFO: sly.ProjectInfo = API.project.get_info_by_id(PROJECT_ID)
 PROJECT_META: sly.ProjectMeta = sly.ProjectMeta.from_json(API.project.get_meta(PROJECT_ID))
 
+DST_PROJECT_NAME = "Training Data Test"
+DST_PROJECT = API.project.get_or_create(WORKSPACE_ID, DST_PROJECT_NAME, type=sly.ProjectType.VIDEOS)
+DST_PROJECT_ID = DST_PROJECT.id
+
 # Directory paths
+CACHED_PROJECT_DIR: str = _get_cache_dir(PROJECT_ID)
 PROJECT_DIR: str = os.path.join(APP_DATA_DIR, "sly_project")
 SPLIT_PROJECT_DIR: str = os.path.join(APP_DATA_DIR, "sly_split")
-DST_PROJECT_NAME: str = "Training Data" + "Test"
 
 # Application settings
 USE_CACHE: bool = True
@@ -33,6 +37,18 @@ SESSION_ID: int = None
 SPLIT_RATIO: float = 0.8
 
 # Progress indicators
-PROGRESS_BAR: sly.app.widgets.Progress = sly.app.widgets.Progress()
-PROGRESS_BAR_2: sly.app.widgets.Progress = sly.app.widgets.Progress()
-PROGRESS_BAR_3: sly.app.widgets.SlyTqdm = sly.app.widgets.SlyTqdm()
+PROGRESS_BAR: Progress = Progress()
+PROGRESS_BAR_2: Progress = Progress()
+
+# Globals for video processing
+TRAIN_VIDEOS = []
+TEST_VIDEOS = []
+VIDEOS_TO_UPLOAD = []
+VIDEOS_TO_DETECT = []
+
+# Constants for clips
+CLIP_LABELS = ["idle", "Self-Grooming", "Head-Body_TWITCH"]
+
+# Cache
+REMOTE_CACHE_PATH = f"/mouse-project-data/{PROJECT_ID}-{DST_PROJECT_ID}-cache.json"
+LOCAL_CACHE_PATH = os.path.join(APP_DATA_DIR, f"{PROJECT_ID}-{DST_PROJECT_ID}-cache.json")

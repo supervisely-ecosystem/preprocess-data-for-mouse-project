@@ -21,6 +21,28 @@ app: sly.Application = sly.Application(layout=layout)
 # Step 1. Input
 @input.button.click
 def confirm_project():
+    input.validation_text.hide()
+    if input.button.text == "Reselect":
+        utils.button_toggle(input, stepper, 1, [connect, splits, output])
+        return
+    
+    # Initialize new videos using the project check function
+    input.validation_text.set("Checking project...", status="info")
+    input.validation_text.show()
+    input.check_project()
+    # If there are no new videos, display a message
+    if len(g.VIDEOS_TO_UPLOAD) == 0 and len(g.VIDEOS_TO_DETECT) == 0:
+        return
+    
+    if len(g.VIDEOS_TO_UPLOAD) > 0:
+        # Update the interface for video splitting
+        splits.train_val_splits.set_items_count(len(g.VIDEOS_TO_UPLOAD))
+        splits.train_val_splits.show()
+    else:
+        splits.validation_text.set("No videos to split", status="success")
+        splits.validation_text.show()
+    
+    # Move to the next step
     utils.button_toggle(input, stepper, 1, [connect, splits, output])
 
 # Step 2. Connect
@@ -45,17 +67,51 @@ def process_project():
     splits.disable()
     output.hide_validation()
     utils.show_progress_bars()
+    
     try:
-        download_project()
-        split_project()
-        make_training_clips()
-        project = upload_project()
-        apply_detector(project.id)
-        output.set(project)
+        if len(g.VIDEOS_TO_UPLOAD) > 0:
+            # 1. Download only new videos
+            download_project()
+            
+            # 2. Split new videos into train/test
+            split_project()
+            
+            # 3. Create clips from new videos
+            make_training_clips()
+            
+            # 4. Upload new videos and clips
+            upload_project()
+        
+        if len(g.VIDEOS_TO_DETECT) > 0:
+            # 5. Apply detector to new videos
+            apply_detector()
+
+        output.set()
+        app.shutdown()
+        
     except Exception as e:
         output.show_validation(f"Error: {str(e)}", "error")
         input.enable()
         connect.enable()
         splits.enable()
+        raise e
     finally:
         utils.hide_progress_bars()
+
+# EASY
+# 1. Первый запуск скачиваем все видео из проекта и записываем имена в кеш.
+# 2. Последующие запуски берут имена видео из исходного проекта и проверяют наличие видео в кеше
+# 3. Если видео нет в кеше, то оно скачивается, обрабатывается и добавляется в кеш. Если видео есть в кеше, то оно пропускается
+
+# Think
+# Структра кеша
+# {
+#     "source_project_id": 555,
+#     "target_project_id": 666,
+#     "uploaded_videos": {"video_name" or "video_id": {"video_id": 123, "video_name": "video_name", "dataset": "dataset_name", "is_test": False, "is_detected": False, "clips": {"clip_name" or "clip_id": {"clip_id": 123, "clip_name": "clip_name", "dataset": "dataset_name", "is_test": False, "is_detected": False}}},
+#     "detected_videos": {"video_name" or "video_id": {"video_id": 123, "video_name": "video_name", "dataset": "dataset_name", "is_test": False, "is_detected": True, "clips": {"clip_name" or "clip_id": {"clip_id": 123, "clip_name": "clip_name", "dataset": "dataset_name", "is_test": False, "is_detected": True}}},
+# }
+
+# Later
+# Сохраняем исходный проект в кеш агента, при последующих запусках добавляем новые видео в кешированный проект на агенте
+# Сохраняем итоговый проект в кеш агента, при последующих запусках добавляем новые видео в кешированный проект на агенте

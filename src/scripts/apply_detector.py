@@ -1,3 +1,5 @@
+from typing import List
+from supervisely.api.video.video_api import VideoInfo
 import src.globals as g
 from supervisely.nn.inference.session import Session
 from supervisely.video_annotation.video_annotation import VideoAnnotation, VideoObjectCollection, FrameCollection, VideoFigure
@@ -5,6 +7,7 @@ from supervisely.video_annotation.frame import Frame
 from supervisely.video_annotation.video_object import VideoObject
 from supervisely.annotation.annotation import Annotation, ObjClassCollection
 from supervisely import logger
+from src.scripts.cache import update_detection_status
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
     annotation_for_frame: Annotation
@@ -49,37 +52,34 @@ def annotations_to_video_annotation(
     logger.info(f"Annotation has been processed: {len(frame_to_annotation)} frames")
     return video_ann
 
-def apply_detector(project_id):
+
+def apply_detector():
     detector = Session(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
     obj_classes = model_meta.obj_classes
 
-    datasets = g.API.dataset.get_list(project_id, recursive=True)
-    with g.PROGRESS_BAR(message=f"Detecting datasets", total=len(datasets)) as pbar_ds:
+    with g.PROGRESS_BAR(message="Detecting videos", total=len(g.VIDEOS_TO_DETECT)) as pbar:
         g.PROGRESS_BAR.show()
-        for dataset in datasets:
-            dataset_id = dataset.id
+        for video in g.VIDEOS_TO_DETECT:
+            video_id = video.id
+            video_shape = (video.frame_width, video.frame_height)
 
-            videos = g.API.video.get_list(dataset_id)
-            with g.PROGRESS_BAR_2(message=f"Detecting videos in dataset: '{dataset.name}'", total=len(videos)) as pbar_item:
-                g.PROGRESS_BAR_2.show()
-                for video in videos:
-                    video_id = video.id
-                    video_shape = (video.frame_width, video.frame_height)
+            iterator = detector.inference_video_id_async(video_id)
+            g.PROGRESS_BAR_2.show()
+            predictions = list(g.PROGRESS_BAR_2(iterator, message="Inferring video"))
+            g.PROGRESS_BAR_2.hide()
+            
+            frame_range = (0, video.frames_count - 1)
+            frame_to_annotation = frame_index_to_annotation(predictions, frame_range, model_meta)
+            frame_to_annotation = filter_annotation_by_classes(frame_to_annotation, "mouse")
+            video_annotation = annotations_to_video_annotation(frame_to_annotation, obj_classes, video_shape)
 
-                    iterator = detector.inference_video_id_async(video_id)
-                    g.PROGRESS_BAR_3.show()
-                    predictions = list(g.PROGRESS_BAR_3(iterator, message="Inferring video"))
-                    g.PROGRESS_BAR_3.hide()
-                    
-                    frame_range = (0, video.frames_count - 1)
-                    frame_to_annotation = frame_index_to_annotation(predictions, frame_range, model_meta)
-                    frame_to_annotation = filter_annotation_by_classes(frame_to_annotation, "mouse")
-                    video_annotation = annotations_to_video_annotation(frame_to_annotation, obj_classes, video_shape)
-
-                    progress_cb = g.PROGRESS_BAR_3(message="Uploading annotation", total=len(video_annotation.figures))
-                    g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
-                    pbar_item.update(1)
-            pbar_ds.update(1)
-    g.PROGRESS_BAR_2.hide()
+            progress_cb = g.PROGRESS_BAR_2(message="Uploading annotation", total=len(video_annotation.figures))
+            g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
+            g.API.video.update_custom_data(video_id, {"is_detected": True})
+            
+            # Обновляем статус обнаружения в кэше
+            update_detection_status(str(video_id))
+            
+            pbar.update(1)
     g.PROGRESS_BAR.hide()
