@@ -108,7 +108,7 @@ class InputStep(BaseStep):
         # Отображаем информацию о новых видео
         text = ""
         text += f"Videos to upload: {len(g.VIDEOS_TO_UPLOAD)}. "
-        text += f"Videos to detect: {len(g.VIDEOS_TO_DETECT)}. "
+        text += f"Videos to detect: {len(g.VIDEOS_TO_DETECT) + len(g.VIDEOS_TO_UPLOAD)}. "
         if len(g.VIDEOS_TO_UPLOAD) == 0 and len(g.VIDEOS_TO_DETECT) == 0:
             text += "No new videos to process. Upload new data to source project"
         

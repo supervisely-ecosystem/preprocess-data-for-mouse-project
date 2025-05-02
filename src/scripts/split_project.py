@@ -57,6 +57,9 @@ def split_project():
                 video_info.set_split_path(dst_video_path)
                 ann_path = get_annotation_path(video_info.path)
                 shutil.copy(ann_path, dst_ann_path)
+            else:
+                logger.debug(f"Video '{video_info.name}' already exists in train directory. It was removed from train videos.")
+                g.TRAIN_VIDEOS.remove(video_info)
             progress_bar.update(1)
             
         for video_info in g.TEST_VIDEOS:
@@ -68,6 +71,9 @@ def split_project():
                 video_info.set_split_path(dst_video_path)
                 ann_path = get_annotation_path(video_info.path)
                 shutil.copy(ann_path, dst_ann_path)
+            else:
+                logger.debug(f"Video '{video_info.name}' already exists in test directory. It was removed from test videos.")
+                g.TEST_VIDEOS.remove(video_info)
             progress_bar.update(1)
 
     g.PROGRESS_BAR.hide()

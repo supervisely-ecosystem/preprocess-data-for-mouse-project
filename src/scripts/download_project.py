@@ -5,6 +5,7 @@ from supervisely.project.video_project import VideoProject, OpenMode, KeyIdMap
 from supervisely import logger
 import supervisely as sly
 from supervisely.project.download import _get_cache_dir
+from supervisely import batched
 import os
 import shutil
 
@@ -24,39 +25,6 @@ def get_cache_log_message(cached: bool, to_download: List[DatasetInfo]) -> str:
         )
 
     return log_msg
-
-def get_project_dir_path(dataset_path: str) -> str:
-    parts = dataset_path.split('/')
-    if len(parts) == 1:
-        return os.path.join(g.PROJECT_DIR, parts[0])
-    else:
-        result_path = os.path.join(g.PROJECT_DIR, parts[0])
-        current_path = result_path
-        
-        for part in parts[1:]:
-            current_path = os.path.join(current_path, "datasets", part)
-        
-        return current_path
-
-def download_video_to_cache(video_metadata, dataset_path: str):
-    video_id = video_metadata.video_id
-    logger.info(f"Downloading video {video_metadata.name} (id: {video_id}) to cache")
-    
-    cache_ds_dir = os.path.join(_get_cache_dir(g.PROJECT_ID), dataset_path)
-    cache_video_path = os.path.join(cache_ds_dir, "video", video_metadata.name)
-    cache_ann_path = os.path.join(cache_ds_dir, "ann", f"{video_metadata.name}.json")
-    
-    if os.path.exists(cache_video_path) and os.path.exists(cache_ann_path):
-        logger.info(f"Video {video_metadata.name} already in cache, skipping download")
-        return cache_video_path, cache_ann_path
-    
-    os.makedirs(os.path.dirname(cache_video_path), exist_ok=True)
-    os.makedirs(os.path.dirname(cache_ann_path), exist_ok=True)
-    
-    g.API.video.download_path(video_id, cache_video_path)
-    ann_json = g.API.video.annotation.download(video_id)
-    sly.json.dump_json_file(ann_json, cache_ann_path)
-    return cache_video_path, cache_ann_path
 
 def create_project_dir():
     if not os.path.exists(g.PROJECT_DIR):
@@ -78,7 +46,10 @@ def create_cache_project_dir():
         sly.fs.silent_remove(os.path.join(g.CACHED_PROJECT_DIR, "key_id_map.json"))
     sly.json.dump_json_file(KeyIdMap().to_dict(), os.path.join(g.CACHED_PROJECT_DIR, "key_id_map.json"))
 
-def download_project():
+def get_dataset_paths():
+    all_datasets = g.API.dataset.get_list(g.PROJECT_ID, recursive=True)
+    datasets_by_id = {ds.id: ds for ds in all_datasets}
+    
     def get_full_dataset_path(dataset_id):
         dataset = datasets_by_id[dataset_id]
         if dataset.parent_id is None:
@@ -87,11 +58,6 @@ def download_project():
             parent_path = get_full_dataset_path(dataset.parent_id)
             return f"{parent_path}/datasets/{dataset.name}"
     
-    create_project_dir()
-    create_cache_project_dir()
-    
-    all_datasets = g.API.dataset.get_list(g.PROJECT_ID, recursive=True)
-    datasets_by_id = {ds.id: ds for ds in all_datasets}
     video_dataset_info = {}
     for video_metadata in g.VIDEOS_TO_UPLOAD:
         dataset_name = video_metadata.dataset
@@ -116,46 +82,103 @@ def download_project():
             'dataset_path': dataset_path
         }
     
-    with g.PROGRESS_BAR(message="Downloading and processing videos", total=len(g.VIDEOS_TO_UPLOAD)) as pbar:
+    return video_dataset_info
+
+def download_videos_to_cache(video_dataset_info):
+    logger.info(f"Downloading {len(g.VIDEOS_TO_UPLOAD)} videos to cache")
+    with g.PROGRESS_BAR(message="Downloading videos to cache", total=len(g.VIDEOS_TO_UPLOAD)) as pbar:
+        g.PROGRESS_BAR.show()
+        for video_batch in batched(g.VIDEOS_TO_UPLOAD, batch_size=10):
+            filtered_batch = []
+            for video_metadata in video_batch:
+                if video_metadata.video_id not in video_dataset_info:
+                    logger.warning(f"No dataset info for video {video_metadata.name} (id: {video_metadata.video_id}), skipping")
+                    pbar.update(1)
+                    continue
+                filtered_batch.append(video_metadata)
+            
+            if not filtered_batch:
+                continue
+            
+            video_ids = []
+            cache_video_paths = []
+            cache_ann_paths = []
+            video_metadata_by_id = {}
+            for video_metadata in filtered_batch:
+                video_id = video_metadata.video_id
+                dataset_path = video_dataset_info[video_id]['dataset_path']
+                
+                cache_ds_dir = os.path.join(_get_cache_dir(g.PROJECT_ID), dataset_path)
+                os.makedirs(os.path.join(cache_ds_dir, "video"), exist_ok=True)
+                os.makedirs(os.path.join(cache_ds_dir, "ann"), exist_ok=True)
+                
+                cache_video_path = os.path.join(cache_ds_dir, "video", video_metadata.name)
+                cache_ann_path = os.path.join(cache_ds_dir, "ann", f"{video_metadata.name}.json")
+                if not os.path.exists(cache_video_path):
+                    video_ids.append(video_id)
+                    cache_video_paths.append(cache_video_path)
+                    cache_ann_paths.append(cache_ann_path)
+                    video_metadata_by_id[video_id] = {
+                        'metadata': video_metadata,
+                        'dataset_path': dataset_path,
+                        'cache_video_path': cache_video_path,
+                        'cache_ann_path': cache_ann_path
+                    }
+            
+            if len(video_ids) > 0:
+                loop = sly.utils.get_or_create_event_loop()
+                loop.run_until_complete(g.API.video.download_paths_async(video_ids, cache_video_paths))
+                ann_infos = loop.run_until_complete(g.API.video.annotation.download_bulk_async(video_ids))
+                for ann_info, cache_ann_path in zip(ann_infos, cache_ann_paths):
+                    sly.json.dump_json_file(ann_info, cache_ann_path)
+            pbar.update(len(filtered_batch))
+    logger.info("Videos downloaded to cache")
+
+def copy_videos_from_cache_to_project(video_dataset_info):
+    logger.info(f"Retrieving {len(g.VIDEOS_TO_UPLOAD)} videos from cache")
+    with g.PROGRESS_BAR(message="Retrieving videos from cache", total=len(g.VIDEOS_TO_UPLOAD)) as pbar:
         g.PROGRESS_BAR.show()
         
         for video_metadata in g.VIDEOS_TO_UPLOAD:
-            video_id = video_metadata.video_id
-            
-            if video_id not in video_dataset_info:
-                logger.warning(f"No dataset info for video {video_metadata.name} (id: {video_id}), skipping")
+            if video_metadata.video_id not in video_dataset_info:
+                logger.warning(f"No dataset info for video '{video_metadata.name}' (id: {video_metadata.video_id}), skipping")
                 pbar.update(1)
                 continue
             
-            dataset_info = video_dataset_info[video_id]
-            dataset_path = dataset_info['dataset_path']
+            dataset_path = video_dataset_info[video_metadata.video_id]['dataset_path']
+            cache_ds_dir = os.path.join(_get_cache_dir(g.PROJECT_ID), dataset_path)
+            cache_video_path = os.path.join(cache_ds_dir, "video", video_metadata.name)
+            cache_ann_path = os.path.join(cache_ds_dir, "ann", f"{video_metadata.name}.json")
+            if not os.path.exists(cache_video_path) or not os.path.exists(cache_ann_path):
+                logger.warning(f"Video '{video_metadata.name}' not found in cache, skipping")
+                pbar.update(1)
+                continue
             
-            cache_dir = _get_cache_dir(g.PROJECT_ID, dataset_path)
-            cache_video_path = os.path.join(cache_dir, "video", video_metadata.name)
-            cache_ann_path = os.path.join(cache_dir, "ann", f"{video_metadata.name}.json")
-            
-            if not (os.path.exists(cache_video_path) and os.path.exists(cache_ann_path)):
-                try:
-                    cache_video_path, cache_ann_path = download_video_to_cache(video_metadata, dataset_path)
-                except Exception as e:
-                    logger.error(f"Error downloading video {video_metadata.name}: {str(e)}")
-                    pbar.update(1)
-                    continue
-            
-            project_video_dir = os.path.join(g.PROJECT_DIR, dataset_path, "video")
-            project_ann_dir = os.path.join(g.PROJECT_DIR, dataset_path, "ann")
+            project_dir_path = os.path.join(g.PROJECT_DIR, dataset_path)
+            project_video_dir = os.path.join(project_dir_path, "video")
+            project_ann_dir = os.path.join(project_dir_path, "ann")
             os.makedirs(project_video_dir, exist_ok=True)
             os.makedirs(project_ann_dir, exist_ok=True)
             
             project_video_path = os.path.join(project_video_dir, video_metadata.name)
-            project_ann_path = os.path.join(project_ann_dir, f"{video_metadata.name}.json")
-            
             if not os.path.exists(project_video_path):
                 shutil.copy(cache_video_path, project_video_path)
             
+            project_ann_path = os.path.join(project_ann_dir, f"{video_metadata.name}.json")
             if not os.path.exists(project_ann_path):
                 shutil.copy(cache_ann_path, project_ann_path)
             
             video_metadata.path = project_video_path
             pbar.update(1)
+    logger.info("Videos retrieved from cache")
+
+def download_project():
+    create_project_dir()
+    create_cache_project_dir()
+    video_dataset_info = get_dataset_paths()
+    download_videos_to_cache(video_dataset_info)
+    copy_videos_from_cache_to_project(video_dataset_info)
+    
+    logger.info(f"Project downloaded to {g.PROJECT_DIR}")
+    return g.PROJECT_DIR
     
