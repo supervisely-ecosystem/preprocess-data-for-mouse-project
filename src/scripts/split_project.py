@@ -10,11 +10,9 @@ def get_annotation_path(video_path):
     return video_path.replace("/video/", "/ann/") + '.json'
 
 def split_project():
-    """Split project into train/test datasets using only new videos."""
     if not os.path.exists(g.SPLIT_PROJECT_DIR):
         os.makedirs(g.SPLIT_PROJECT_DIR)
     
-    # Project structure
     train_dir = os.path.join(g.SPLIT_PROJECT_DIR, "train")
     train_video_dir = os.path.join(train_dir, "video")
     train_ann_dir = os.path.join(train_dir, "ann")
@@ -30,26 +28,18 @@ def split_project():
     os.makedirs(test_video_dir, exist_ok=True)
     os.makedirs(test_ann_dir, exist_ok=True)
     
-    # Copy meta information
     src_meta_path = os.path.join(g.PROJECT_DIR, "meta.json")
     dst_meta_path = os.path.join(g.SPLIT_PROJECT_DIR, "meta.json")
     if not os.path.exists(dst_meta_path) and os.path.exists(src_meta_path):
         shutil.copy(src_meta_path, dst_meta_path)
-    
-    # Save key_id_map
     dump_json_file(KeyIdMap().to_dict(), os.path.join(g.SPLIT_PROJECT_DIR, "key_id_map.json"))
 
-    # Sort videos by datasets for further processing
     train_size = int(len(g.VIDEOS_TO_UPLOAD) * g.SPLIT_RATIO)
     g.TRAIN_VIDEOS = g.VIDEOS_TO_UPLOAD[:train_size]
     g.TEST_VIDEOS = g.VIDEOS_TO_UPLOAD[train_size:]
-
-    # Distribute videos into datasets
     with g.PROGRESS_BAR(message="Splitting videos", total=len(g.VIDEOS_TO_UPLOAD)) as progress_bar:
         g.PROGRESS_BAR.show()
         for video_info in g.TRAIN_VIDEOS:
-            # Distribute videos based on train/test ratio
-            # Copy file to the train directory
             dst_video_path = os.path.join(train_video_dir, video_info.name)
             dst_ann_path = os.path.join(train_ann_dir, video_info.name + ".json")
             if not os.path.exists(dst_video_path) and os.path.exists(video_info.path):
@@ -63,7 +53,6 @@ def split_project():
             progress_bar.update(1)
             
         for video_info in g.TEST_VIDEOS:
-            # Copy file to the test directory
             dst_video_path = os.path.join(test_video_dir, video_info.name)
             dst_ann_path = os.path.join(test_ann_dir, video_info.name + ".json")
             if not os.path.exists(dst_video_path) and os.path.exists(video_info.path):

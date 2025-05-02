@@ -57,13 +57,9 @@ def save_cache(cache_data: Dict[str, Any]) -> None:
         logger.error(f"Error saving cache: {str(e)}")
 
 def add_video_to_cache(video_info: VideoMetaData, is_uploaded: bool = True, is_detected: bool = False) -> None:
-    """
-    Добавляет видео в кэш после загрузки
-    """
     cache_data = load_cache()
     video_id = str(video_info.video_id)
     
-    # Проверяем, есть ли видео уже в кэше
     if video_id not in cache_data.get("videos", {}):
         cache_data.setdefault("videos", {})[video_id] = {
             "video_id": video_id,
@@ -75,17 +71,13 @@ def add_video_to_cache(video_info: VideoMetaData, is_uploaded: bool = True, is_d
             "clips": {}
         }
     else:
-        # Обновляем информацию о видео если оно уже есть
         cache_data["videos"][video_id]["is_uploaded"] = is_uploaded
         cache_data["videos"][video_id]["is_detected"] = is_detected
     
     save_cache(cache_data)
-    upload_cache()  # Отправляем кэш на сервер
+    upload_cache()
 
 def add_single_clip_to_cache(clip_info: VideoMetaData) -> None:
-    """
-    Добавляет один клип в кэш после загрузки
-    """
     if not hasattr(clip_info, "source_video") or not clip_info.source_video:
         logger.warning(f"Clip {clip_info.name} has no source video")
         return
@@ -94,13 +86,10 @@ def add_single_clip_to_cache(clip_info: VideoMetaData) -> None:
     source_video = clip_info.source_video
     video_id = str(source_video.video_id)
     
-    # Проверяем, есть ли видео уже в кэше
     if video_id not in cache_data.get("videos", {}):
-        # Если видео нет в кэше, сначала добавляем его
         add_video_to_cache(source_video)
-        cache_data = load_cache()  # Перезагружаем кэш после добавления видео
+        cache_data = load_cache()
     
-    # Добавляем клип к видео
     clip_id = str(getattr(clip_info, "clip_id", hash(clip_info.name)))
     cache_data["videos"][video_id].setdefault("clips", {})[clip_id] = {
         "clip_id": clip_id,
@@ -113,25 +102,19 @@ def add_single_clip_to_cache(clip_info: VideoMetaData) -> None:
     }
     
     save_cache(cache_data)
-    upload_cache()  # Отправляем кэш на сервер
+    upload_cache()
 
 def add_clips_to_cache(video_info: VideoMetaData) -> None:
-    """
-    Добавляет клипы в кэш после их создания
-    """
     if not hasattr(video_info, "clips") or not video_info.clips:
         return
     
     cache_data = load_cache()
     video_id = str(video_info.video_id)
     
-    # Проверяем, есть ли видео уже в кэше
     if video_id not in cache_data.get("videos", {}):
-        # Если видео нет в кэше, сначала добавляем его
         add_video_to_cache(video_info)
-        cache_data = load_cache()  # Перезагружаем кэш после добавления видео
+        cache_data = load_cache()
     
-    # Добавляем клипы к видео
     for clip in video_info.clips:
         clip_id = str(getattr(clip, "clip_id", hash(clip.name)))
         cache_data["videos"][video_id].setdefault("clips", {})[clip_id] = {
@@ -145,16 +128,13 @@ def add_clips_to_cache(video_info: VideoMetaData) -> None:
         }
     
     save_cache(cache_data)
-    upload_cache()  # Отправляем кэш на сервер
+    upload_cache()
 
 def update_detection_status(video_id: str, is_detected: bool = True) -> None:
-    """
-    Обновляет статус обнаружения для видео в кэше
-    """
     cache_data = load_cache()
     video_id = str(video_id)
     
     if video_id in cache_data.get("videos", {}):
         cache_data["videos"][video_id]["is_detected"] = is_detected
         save_cache(cache_data)
-        upload_cache()  # Отправляем кэш на сервер
+        upload_cache()

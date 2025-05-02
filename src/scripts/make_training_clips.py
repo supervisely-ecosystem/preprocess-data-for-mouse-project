@@ -268,11 +268,8 @@ def make_neg_clips_for_tag(
 
     fps = get_fps(video_path)
     total_frames = get_total_frames(video_path)
-
-    # Merge overlapping skip ranges.
     skip_ranges = merge_overlapping_ranges(skip_ranges)
 
-    # Build non-skip intervals from video frames.
     non_skip_intervals = []
     current = 0
     for s, e in skip_ranges:
@@ -282,14 +279,12 @@ def make_neg_clips_for_tag(
     if current < total_frames:
         non_skip_intervals.append([current, total_frames-1])
 
-    # Clip parameters in frames.
     clip_min_frames = math.ceil(fps * min_clip_duration)
     clip_max_frames = math.floor(fps * max_clip_duration)
     clip_counter = 1
     cumulative_clip_frames = 0
     info = []
 
-    # Process non-skip intervals and extract random clips.
     for interval in non_skip_intervals:
         interval_start, interval_end = interval
         t = interval_start
@@ -307,7 +302,6 @@ def make_neg_clips_for_tag(
             new_width, new_height = calculate_resize(width, height, target_short_edge=target_short_edge)
             extract_clip(video_path, start_frame, end_frame, new_width, new_height, fps, output_clip)
 
-            # Create ann file
             ann_file = tag_ann_dir / clip_name.replace(".mp4", ".mp4.json")
             ann = VideoAnnotation((new_width, new_height), clip_length)
             dump_json_file(ann.to_json(), ann_file)
@@ -366,7 +360,6 @@ def make_training_clips(min_size=480):
     train_dir = Path(train_dir)
     train_dir.mkdir(parents=True, exist_ok=True)
     
-    # Create positive clips
     logger.info("Creating positive clips...")
     pos_infos = make_positives(input_dir=train_dir, output_dir=output_dir, min_size=min_size)
     if not pos_infos:

@@ -7,7 +7,6 @@ from supervisely import logger
 from src.scripts.cache import add_video_to_cache, add_single_clip_to_cache
 
 def upload_test_videos() -> List[VideoInfo]:
-    """Uploads only new videos to the target project."""
     if g.TEST_VIDEOS:
         # Get or create a dataset for test videos
         test_dataset = g.API.dataset.get_or_create(g.DST_PROJECT_ID, "test")
@@ -47,14 +46,12 @@ def upload_test_videos() -> List[VideoInfo]:
             g.PROGRESS_BAR.hide()
 
 def upload_train_videos() -> List[VideoInfo]:
-    # Create datasets
     train_dataset = g.API.dataset.get_or_create(g.DST_PROJECT_ID, "train")
     label_datasets = {}
     for label in g.CLIP_LABELS:
         label_dataset = g.API.dataset.get_or_create(g.DST_PROJECT_ID, label, parent_id=train_dataset.id)
         label_datasets[label] = label_dataset
     
-    # Collect all clips from training videos
     all_clips = []
     for video_metadata in g.TRAIN_VIDEOS:
         all_clips.extend(video_metadata.clips)
@@ -80,23 +77,18 @@ def upload_train_videos() -> List[VideoInfo]:
                         path=clip_metadata.path,
                     )
                     
-                    # Присваиваем clip_id после загрузки
                     clip_metadata.clip_id = uploaded_clip.id
                     uploaded_batch.append(uploaded_clip)
                     pbar.update(1)
                 
-                # Обновляем кеш после каждого батча
                 for clip_metadata in validated_batch:
                     add_single_clip_to_cache(clip_metadata)
                 g.VIDEOS_TO_DETECT.extend(uploaded_batch)
             g.PROGRESS_BAR.hide()
     
-    # Обновляем статус исходных видео как загруженных
     for video_metadata in g.TRAIN_VIDEOS:
-        # Обновляем статус самого видео как загруженного
         add_video_to_cache(video_metadata, is_uploaded=True, is_detected=False)
 
 def upload_project() -> List[VideoInfo]:
-    """Uploads only new videos to the target project."""
-    upload_test_videos()
     upload_train_videos()
+    upload_test_videos()

@@ -1,5 +1,4 @@
 from supervisely.app.widgets import ProjectThumbnail
-from supervisely.api.project_api import ProjectInfo
 import src.globals as g
 from src.ui.base_step import BaseStep
 

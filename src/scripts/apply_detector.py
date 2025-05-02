@@ -77,8 +77,6 @@ def apply_detector():
             progress_cb = g.PROGRESS_BAR_2(message="Uploading annotation", total=len(video_annotation.figures))
             g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
             g.API.video.update_custom_data(video_id, {"is_detected": True})
-            
-            # Обновляем статус обнаружения в кэше
             update_detection_status(str(video_id))
             
             pbar.update(1)

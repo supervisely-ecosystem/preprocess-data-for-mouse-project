@@ -1,5 +1,4 @@
-from supervisely.app.widgets import TrainValSplits, RandomSplitsTable
-import src.globals as g
+from supervisely.app.widgets import RandomSplitsTable
 from src.ui.base_step import BaseStep
 
 class SplitsStep(BaseStep):
