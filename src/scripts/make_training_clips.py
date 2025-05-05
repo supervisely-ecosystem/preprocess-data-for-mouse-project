@@ -231,10 +231,15 @@ def make_positives(input_dir: str, output_dir: str, min_size):
             ann_file = video_file.parent.parent / f"ann/{video_file.name}.json"
             if not ann_file.exists():
                 logger.warn(f"Annotation file not found: {ann_file}")
+                pbar.update(1)
                 continue
             
             for tag, label in LABELS.items():
-                infos += make_pos_clips_for_tag(video_file, ann_file, output_dir, min_size, tag, label)
+                curr_video_infos = make_pos_clips_for_tag(video_file, ann_file, output_dir, min_size, tag, label)
+                if len(curr_video_infos) == 0:
+                    logger.debug(f"No clips found for video: {video_file}")
+                infos.extend(curr_video_infos)
+
             logger.info(f"Processed {i+1}/{len(paths)} videos for positive clips")
             pbar.update(1)
     g.PROGRESS_BAR.hide()

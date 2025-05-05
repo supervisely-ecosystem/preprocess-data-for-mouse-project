@@ -25,6 +25,8 @@ PROJECT_META: sly.ProjectMeta = sly.ProjectMeta.from_json(API.project.get_meta(P
 DST_PROJECT_NAME = "Training Data Test"
 DST_PROJECT_INFO = API.project.get_or_create(WORKSPACE_ID, DST_PROJECT_NAME, type=sly.ProjectType.VIDEOS)
 DST_PROJECT_ID = DST_PROJECT_INFO.id
+DST_PROJECT_META: sly.ProjectMeta = sly.ProjectMeta.from_json(API.project.get_meta(DST_PROJECT_ID))
+
 
 # Directory paths
 CACHED_PROJECT_DIR: str = _get_cache_dir(PROJECT_ID)

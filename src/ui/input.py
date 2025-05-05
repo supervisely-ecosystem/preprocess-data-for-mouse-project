@@ -4,7 +4,7 @@ from supervisely.project.download import is_cached, _get_cache_dir
 from src.scripts.video_metadata import VideoMetaData
 from src.ui.base_step import BaseStep
 from src.scripts.cache import download_cache, load_cache, save_cache, upload_cache
-
+from supervisely import logger
 class InputStep(BaseStep):
     def __init__(self):
         self.source_project_thumbnail = ProjectThumbnail(g.PROJECT_INFO)
@@ -42,6 +42,8 @@ class InputStep(BaseStep):
         self.hide_validation()
 
     def check_project(self):
+        logger.info("Checking project")
+        
         cache_data = download_cache()
         original_project_data = {}
         for dataset in g.API.dataset.get_list(g.PROJECT_ID, recursive=True):

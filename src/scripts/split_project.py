@@ -5,13 +5,13 @@ import src.globals as g
 from supervisely import logger
 from supervisely.video_annotation.key_id_map import KeyIdMap
 from supervisely.io.json import dump_json_file
+from supervisely.io.fs import mkdir
 
 def get_annotation_path(video_path):
     return video_path.replace("/video/", "/ann/") + '.json'
 
 def split_project():
-    if not os.path.exists(g.SPLIT_PROJECT_DIR):
-        os.makedirs(g.SPLIT_PROJECT_DIR)
+    mkdir(g.SPLIT_PROJECT_DIR, True)
     
     train_dir = os.path.join(g.SPLIT_PROJECT_DIR, "train")
     train_video_dir = os.path.join(train_dir, "video")

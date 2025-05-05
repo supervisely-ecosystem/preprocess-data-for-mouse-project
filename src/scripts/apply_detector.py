@@ -1,4 +1,5 @@
 from typing import List
+from supervisely.project import ProjectMeta
 from supervisely.api.video.video_api import VideoInfo
 import src.globals as g
 from supervisely.nn.inference.session import Session
@@ -23,18 +24,12 @@ def filter_annotation_by_classes(annotation_predictions: dict, selected_classes:
 
 def frame_index_to_annotation(annotation_predictions, frames_range, model_meta):
     frame_index_to_annotation_dict = {}
-
-    for frame_index, annotation_json in zip(range(frames_range[0], frames_range[1] + 1), annotation_predictions):
-        if isinstance(annotation_json, dict) and "annotation" in annotation_json.keys():
-            annotation_json = annotation_json["annotation"]
-        frame_index_to_annotation_dict[frame_index] = Annotation.from_json(annotation_json, model_meta)
-
+    for frame_index, ann_pred in zip(range(frames_range[0], frames_range[1] + 1), annotation_predictions):
+        frame_index_to_annotation_dict[frame_index] = ann_pred
     return frame_index_to_annotation_dict
 
 
-def annotations_to_video_annotation(
-    frame_to_annotation: dict, obj_classes: ObjClassCollection, video_shape: tuple
-):
+def annotations_to_video_annotation(frame_to_annotation: dict, obj_classes: ObjClassCollection, video_shape: tuple):
     name2vid_obj_cls = {x.name: VideoObject(x) for x in obj_classes}
     video_obj_classes = VideoObjectCollection(list(name2vid_obj_cls.values()))
     frames = []
@@ -52,11 +47,32 @@ def annotations_to_video_annotation(
     logger.info(f"Annotation has been processed: {len(frame_to_annotation)} frames")
     return video_ann
 
+def check_dst_project_meta(model_meta: ProjectMeta):
+    existing_classes = g.DST_PROJECT_META.obj_classes
+    existing_tags = g.DST_PROJECT_META.tag_metas
+    
+    new_classes = []
+    for class_ in model_meta.obj_classes:
+        if class_.name not in existing_classes:
+            new_classes.append(class_)
+    
+    new_tags = []
+    for tag in model_meta.tag_metas:
+        if tag.name not in existing_tags:
+            new_tags.append(tag)
+    
+    if len(new_classes) > 0:
+        meta = g.DST_PROJECT_META.add_obj_classes(new_classes)
+    if len(new_tags) > 0:
+        meta = g.DST_PROJECT_META.add_tag_metas(new_tags)
+    if len(new_classes) > 0 or len(new_tags) > 0:
+        g.API.project.update_meta(g.DST_PROJECT_ID, meta.to_json())
 
 def apply_detector():
     detector = Session(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
     obj_classes = model_meta.obj_classes
+    check_dst_project_meta(model_meta)
 
     with g.PROGRESS_BAR(message="Detecting videos", total=len(g.VIDEOS_TO_DETECT)) as pbar:
         g.PROGRESS_BAR.show()
@@ -76,7 +92,6 @@ def apply_detector():
 
             progress_cb = g.PROGRESS_BAR_2(message="Uploading annotation", total=len(video_annotation.figures))
             g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
-            g.API.video.update_custom_data(video_id, {"is_detected": True})
             update_detection_status(str(video_id))
             
             pbar.update(1)
