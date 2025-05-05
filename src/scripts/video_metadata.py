@@ -18,6 +18,7 @@ class VideoMetaData:
         self.start_frame = None
         self.end_frame = None
         self.label = None
+        self.source_video_info = None
     
     def to_dict(self):
         return {
@@ -39,8 +40,9 @@ class VideoMetaData:
         video_info = VideoMetaData(
             name=video.name,
             dataset=dataset_name,
-            video_id=video.id
+            video_id=video.id,
         )
+        video_info.source_video_info = video
         return video_info
     
     @staticmethod

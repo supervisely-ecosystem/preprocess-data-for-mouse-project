@@ -20,29 +20,21 @@ def upload_test_videos() -> List[VideoInfo]:
                         pbar.update(1)
                         continue
                     validated_batch.append(video_metadata)
-                uploaded_batch = []
-                for video_metadata in validated_batch:
-                    vid_info = g.API.video.get_info_by_id(video_metadata.video_id)
-                    uploaded_video = g.API.video.add_existing(
-                        dataset_id=test_dataset.id,
-                        video_info=vid_info,
-                        name=video_metadata.name,
-                    )
 
-                    # Upload video
-                    # uploaded_video = g.API.video.upload_path(
-                    #     dataset_id=test_dataset.id,
-                    #     name=video_info.name,
-                    #     path=video_info.split_path
-                    # )
-                    uploaded_batch.append(uploaded_video)
-                    pbar.update(1)
+                video_names = [video_metadata.name for video_metadata in validated_batch]
+                video_links = [video_metadata.source_video_info.link for video_metadata in validated_batch]
+                uploaded_batch = g.API.video.upload_links(
+                    dataset_id=test_dataset.id,
+                    links=video_links,
+                    names=video_names,
+                )
                 
                 # Добавляем видео в кэш
                 for video_metadata in validated_batch:   
                     video_metadata.is_test = True
                     add_video_to_cache(video_metadata, is_uploaded=True, is_detected=False)
                 g.VIDEOS_TO_DETECT.extend(uploaded_batch)
+                pbar.update(len(validated_batch))
             g.PROGRESS_BAR.hide()
 
 def upload_train_videos() -> List[VideoInfo]:
@@ -52,9 +44,10 @@ def upload_train_videos() -> List[VideoInfo]:
         label_dataset = g.API.dataset.get_or_create(g.DST_PROJECT_ID, label, parent_id=train_dataset.id)
         label_datasets[label] = label_dataset
     
-    all_clips = []
+    all_clips = {}
     for video_metadata in g.TRAIN_VIDEOS:
-        all_clips.extend(video_metadata.clips)
+        for clip_metadata in video_metadata.clips:
+            all_clips[clip_metadata.label] = clip_metadata
     
     if len(all_clips) > 0:
         with g.PROGRESS_BAR(message=f"Uploading training clips", total=len(all_clips)) as pbar:
@@ -68,18 +61,17 @@ def upload_train_videos() -> List[VideoInfo]:
                         continue
                     validated_batch.append(clip_metadata)
 
-                uploaded_batch = []
-                for clip_metadata in validated_batch:
-                    # Upload clip
-                    uploaded_clip = g.API.video.upload_path(
-                        dataset_id=label_datasets[clip_metadata.label].id,
-                        name=clip_metadata.name,
-                        path=clip_metadata.path,
-                    )
+                video_names = [clip_metadata.name for clip_metadata in validated_batch]
+                video_paths = [clip_metadata.path for clip_metadata in validated_batch]
+                uploaded_batch = g.API.video.upload_paths(
+                    dataset_id=label_datasets[clip_metadata.label].id,
+                    names=video_names,
+                    paths=video_paths,
+                )
                     
-                    clip_metadata.clip_id = uploaded_clip.id
-                    uploaded_batch.append(uploaded_clip)
-                    pbar.update(1)
+                for clip_metadata in validated_batch:
+                    clip_metadata.clip_id = uploaded_batch[clip_metadata.name].id
+                pbar.update(len(validated_batch))
                 
                 for clip_metadata in validated_batch:
                     add_single_clip_to_cache(clip_metadata)

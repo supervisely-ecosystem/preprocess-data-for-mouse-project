@@ -72,8 +72,8 @@ class InputStep(BaseStep):
                         if video_name in target_videos_by_name:
                             g.VIDEOS_TO_DETECT.append(target_videos_by_name[video_name])
                 else:
-                    video_info = VideoMetaData.from_sly_video(video, dataset_name)
-                    g.VIDEOS_TO_UPLOAD.append(video_info)
+                    video_metadata = VideoMetaData.from_sly_video(video, dataset_name)
+                    g.VIDEOS_TO_UPLOAD.append(video_metadata)
         
         for video_id, video_data in cache_data.get("videos", {}).items():
             for clip_id, clip_data in video_data.get("clips", {}).items():
