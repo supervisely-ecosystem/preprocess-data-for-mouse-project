@@ -220,11 +220,9 @@ def make_positives(input_dir: str, output_dir: str, min_size):
 
     # find duplicates
     paths = unique_video_names(paths)
-
     LABELS = {"Self-Grooming": 1, "Head/Body TWITCH": 2}
 
     infos = []
-
     with g.PROGRESS_BAR(message="Making positive training clips", total=len(paths)) as pbar:
         g.PROGRESS_BAR.show()
         for i, video_file in enumerate(paths):

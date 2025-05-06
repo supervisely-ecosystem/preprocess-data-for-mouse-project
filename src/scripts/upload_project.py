@@ -4,7 +4,7 @@ from typing import List
 from supervisely import batched
 from supervisely.api.video.video_api import VideoInfo
 from supervisely import logger
-from src.scripts.cache import add_video_to_cache, add_single_clip_to_cache
+from src.scripts.cache import add_video_to_cache, add_single_clip_to_cache, upload_cache
 
 def validate_batch(batch: List[VideoInfo], is_test: bool, pbar) -> List[VideoInfo]:
     validated_batch = []
@@ -18,6 +18,14 @@ def validate_batch(batch: List[VideoInfo], is_test: bool, pbar) -> List[VideoInf
             continue
         validated_batch.append(video_metadata)
     return validated_batch
+
+def move_empty_videos_to_test_set(training_videos: dict, all_clips: dict) -> List[VideoInfo]:
+    empty_videos = training_videos.keys() - all_clips.keys()
+    logger.info(f"Found '{len(empty_videos)}' videos with no clips")
+    for video_name in empty_videos:
+        g.TRAIN_VIDEOS.remove(training_videos[video_name])
+        g.TEST_VIDEOS.append(training_videos[video_name])
+    logger.info(f"Moved '{len(empty_videos)}' videos with no clips to test set")
 
 def upload_test_videos() -> List[VideoInfo]:
     if not g.TEST_VIDEOS:
@@ -58,7 +66,8 @@ def upload_test_videos() -> List[VideoInfo]:
             
             for video_metadata in validated_batch:   
                 video_metadata.is_test = True
-                add_video_to_cache(video_metadata, is_uploaded=True, is_detected=False)
+                add_video_to_cache(video_metadata, is_uploaded=True, is_detected=False, upload=False)
+            upload_cache()
             g.VIDEOS_TO_DETECT.extend(uploaded_batch)
             pbar.update(len(validated_batch))
         g.PROGRESS_BAR.hide()
@@ -88,11 +97,7 @@ def upload_train_videos() -> List[VideoInfo]:
                 all_clips[clip_metadata.source_video.name][clip_metadata.label] = []
             all_clips[clip_metadata.source_video.name][clip_metadata.label].append(clip_metadata)
 
-    # @TODO: Add empty videos to test set
-    # empty_videos = training_videos.keys() - all_clips.keys()
-    # for video_name in empty_videos:
-    #     g.API.video.add_existing()
-    #     add_video_to_cache(training_videos[video_name], is_uploaded=True, is_detected=False)
+    move_empty_videos_to_test_set(training_videos, all_clips)
     
     if len(all_clips) > 0:
         with g.PROGRESS_BAR(message=f"Uploading training videos", total=len(all_clips.keys())) as pbar:

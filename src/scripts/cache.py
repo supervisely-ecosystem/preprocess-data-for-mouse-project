@@ -56,7 +56,7 @@ def save_cache(cache_data: Dict[str, Any]) -> None:
     except Exception as e:
         logger.error(f"Error saving cache: {str(e)}")
 
-def add_video_to_cache(video_info: VideoMetaData, is_uploaded: bool = True, is_detected: bool = False) -> None:
+def add_video_to_cache(video_info: VideoMetaData, is_uploaded: bool = True, is_detected: bool = False, upload: bool = True) -> None:
     cache_data = load_cache()
     video_id = str(video_info.video_id)
     
@@ -75,6 +75,12 @@ def add_video_to_cache(video_info: VideoMetaData, is_uploaded: bool = True, is_d
         cache_data["videos"][video_id]["is_detected"] = is_detected
     
     save_cache(cache_data)
+    if upload:
+        upload_cache()
+
+def add_videos_to_cache(video_infos: List[VideoMetaData], is_uploaded: bool = True, is_detected: bool = False) -> None:
+    for video_info in video_infos:
+        add_video_to_cache(video_info, is_uploaded, is_detected, False)
     upload_cache()
 
 def add_single_clip_to_cache(clip_info: VideoMetaData) -> None:
