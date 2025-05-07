@@ -72,13 +72,13 @@ def check_dst_project_meta(model_meta: ProjectMeta):
     existing_tags = g.DST_PROJECT_META.tag_metas
     
     new_classes = []
-    for class_ in model_meta.obj_classes:
-        if class_.name not in existing_classes:
-            new_classes.append(class_)
+    for obj_class in model_meta.obj_classes:
+        if not existing_classes.has_key(obj_class.name):
+            new_classes.append(obj_class)
     
     new_tags = []
     for tag in model_meta.tag_metas:
-        if tag.name not in existing_tags:
+        if not existing_tags.has_key(tag.name):
             new_tags.append(tag)
     
     if len(new_classes) > 0:
