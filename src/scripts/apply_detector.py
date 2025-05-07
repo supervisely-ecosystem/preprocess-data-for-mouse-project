@@ -9,6 +9,7 @@ from supervisely.video_annotation.video_object import VideoObject
 from supervisely.annotation.annotation import Annotation, ObjClassCollection
 from supervisely import logger
 from src.scripts.cache import update_detection_status
+from supervisely.geometry.rectangle import Rectangle
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
     annotation_for_frame: Annotation
@@ -28,18 +29,37 @@ def frame_index_to_annotation(annotation_predictions, frames_range, model_meta):
         frame_index_to_annotation_dict[frame_index] = ann_pred
     return frame_index_to_annotation_dict
 
+def clamp_rectangle_to_bounds(rect: Rectangle, video_shape: tuple):
+    width, height = video_shape
+
+    top = max(0, rect.top)
+    left = max(0, rect.left)
+    bottom = min(height - 1, rect.bottom)
+    right = min(width - 1, rect.right)
+
+    if top >= bottom or left >= right:
+        return None
+
+    if (top, left, bottom, right) != (rect.top, rect.left, rect.bottom, rect.right):
+        return Rectangle(top, left, bottom, right)
+    return rect
 
 def annotations_to_video_annotation(frame_to_annotation: dict, obj_classes: ObjClassCollection, video_shape: tuple):
     name2vid_obj_cls = {x.name: VideoObject(x) for x in obj_classes}
     video_obj_classes = VideoObjectCollection(list(name2vid_obj_cls.values()))
     frames = []
-
     for idx, ann in frame_to_annotation.items():
         ann: Annotation
         figures = []
         for label in ann.labels:
             vid_obj = name2vid_obj_cls[label.obj_class.name]
-            vid_fig = VideoFigure(vid_obj, label.geometry, idx)
+            geometry = label.geometry
+            if isinstance(geometry, Rectangle):
+                geometry = clamp_rectangle_to_bounds(geometry, video_shape)
+                if geometry is None:
+                    # Skip completely out-of-frame rectangles
+                    continue
+            vid_fig = VideoFigure(vid_obj, geometry, idx)
             figures.append(vid_fig)
         frames.append(Frame(idx, figures))
     frames_coll = FrameCollection(frames)
