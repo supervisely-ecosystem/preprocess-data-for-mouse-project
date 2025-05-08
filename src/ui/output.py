@@ -10,7 +10,7 @@ class OutputStep(BaseStep):
         self.notification_box = NotificationBox(
             title="Do not shutdown or restart the agent", 
             description="In case of interruption, you can resume the process from the same step by restarting the app",
-            box_style="info"
+            box_type="info"
         )
         
         widgets = [self.notification_box, self.project_thumbnail, g.PROGRESS_BAR, g.PROGRESS_BAR_2]

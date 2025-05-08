@@ -5,6 +5,7 @@ from src.scripts.video_metadata import VideoMetaData
 from src.ui.base_step import BaseStep
 from src.scripts.cache import download_cache, load_cache, save_cache, upload_cache
 from supervisely import logger
+
 class InputStep(BaseStep):
     def __init__(self):
         self.source_project_thumbnail = ProjectThumbnail(g.PROJECT_INFO)
