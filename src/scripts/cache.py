@@ -157,4 +157,4 @@ def update_detection_status(video_id: str, is_detected: bool = True) -> None:
                 upload_cache()
                 logger.debug(f"Detection status updated for clip: {video_id} (video id: '{full_video_id}')")
                 return
-    logger.debug(f"Video id '{video_id}' not found in cache")
+    logger.debug(f"Video ID: '{video_id}' not found in cache")
