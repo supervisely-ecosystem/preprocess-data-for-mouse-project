@@ -144,3 +144,14 @@ def update_detection_status(video_id: str, is_detected: bool = True) -> None:
         cache_data["videos"][video_id]["is_detected"] = is_detected
         save_cache(cache_data)
         upload_cache()
+        return
+    
+    videos = cache_data.get("videos", {})
+    for full_video_id in videos:
+        clips = videos[full_video_id].get("clips", {})
+        for clip_id in clips:
+            if clip_id == video_id:
+                clips[clip_id]["is_detected"] = is_detected
+                save_cache(cache_data)
+                upload_cache()
+                return

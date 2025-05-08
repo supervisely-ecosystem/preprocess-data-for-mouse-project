@@ -1,6 +1,7 @@
 from supervisely.app.widgets import ProjectThumbnail
 import src.globals as g
 from src.ui.base_step import BaseStep
+from supervisely import is_production
 
 class OutputStep(BaseStep):
     def __init__(self):
@@ -19,9 +20,10 @@ class OutputStep(BaseStep):
         self.button.text = "Start"
     
     def set(self) -> None:
-        g.API.task.set_output_project(g.TASK_ID, g.DST_PROJECT_ID, g.DST_PROJECT_NAME, g.DST_PROJECT_INFO.image_preview_url)
+        if is_production():
+            g.API.task.set_output_project(g.TASK_ID, g.DST_PROJECT_ID, g.DST_PROJECT_NAME, g.DST_PROJECT_INFO.image_preview_url)
         self.project_thumbnail.set(g.DST_PROJECT_INFO)
-        self.show_validation("Training data uploaded successfully", "success")
+        self.show_validation("Training data processed successfully", "success")
         self.project_thumbnail.show()
         self.button.disable()
 

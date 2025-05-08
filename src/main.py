@@ -84,6 +84,9 @@ def process_project():
         
         if len(g.VIDEOS_TO_DETECT) > 0:
             # 5. Apply detector to new videos
+            # Debug
+            video_info = g.API.video.get_info_by_id(917137)
+            g.VIDEOS_TO_DETECT = [video_info]
             apply_detector()
 
         output.set()
