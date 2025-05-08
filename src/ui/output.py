@@ -21,7 +21,8 @@ class OutputStep(BaseStep):
     
     def set(self) -> None:
         if is_production():
-            g.API.task.set_output_project(g.TASK_ID, g.DST_PROJECT_ID, g.DST_PROJECT_NAME, g.DST_PROJECT_INFO.image_preview_url)
+            upd_dst_pr_info = g.API.project.get_info_by_id(g.DST_PROJECT_ID)
+            g.API.task.set_output_project(g.TASK_ID, upd_dst_pr_info.id, upd_dst_pr_info.name, upd_dst_pr_info.image_preview_url)
         self.project_thumbnail.set(g.DST_PROJECT_INFO)
         self.show_validation("Training data processed successfully", "success")
         self.project_thumbnail.show()
