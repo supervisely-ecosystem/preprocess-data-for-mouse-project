@@ -66,6 +66,7 @@ def process_project():
     connect.disable()
     splits.disable()
     output.hide_validation()
+    output.notification_box.show()
     utils.show_progress_bars()
     
     try:
@@ -96,4 +97,5 @@ def process_project():
         splits.enable()
         raise e
     finally:
+        output.notification_box.hide()
         utils.hide_progress_bars()

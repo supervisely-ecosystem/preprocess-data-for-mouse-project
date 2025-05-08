@@ -1,4 +1,4 @@
-from supervisely.app.widgets import ProjectThumbnail
+from supervisely.app.widgets import ProjectThumbnail, NotificationBox
 import src.globals as g
 from src.ui.base_step import BaseStep
 from supervisely import is_production
@@ -7,8 +7,13 @@ class OutputStep(BaseStep):
     def __init__(self):
         self.project_thumbnail = ProjectThumbnail()
         self.project_thumbnail.hide()
+        self.notification_box = NotificationBox(
+            title="Do not shutdown or restart the agent", 
+            description="In case of interruption, you can resume the process from the same step by restarting the app",
+            box_style="info"
+        )
         
-        widgets = [self.project_thumbnail, g.PROGRESS_BAR, g.PROGRESS_BAR_2]
+        widgets = [self.notification_box, self.project_thumbnail, g.PROGRESS_BAR, g.PROGRESS_BAR_2]
         
         super().__init__(
             title="Output Project",
