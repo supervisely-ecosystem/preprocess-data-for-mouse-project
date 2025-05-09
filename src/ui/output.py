@@ -13,6 +13,7 @@ class OutputStep(BaseStep):
             description="In case of interruption, you can resume the process from the same step by restarting the app",
             box_type="info",
         )
+        self.notification_box.hide()
 
         widgets = [self.notification_box, self.project_thumbnail, g.PROGRESS_BAR, g.PROGRESS_BAR_2]
 
