@@ -62,7 +62,7 @@ def annotations_to_video_annotation(
 
 def update_dst_project_meta():
     mouse_obj_class = ObjClass(name="mouse", geometry_type=Rectangle)
-    g.DST_PROJECT_META.add_obj_class(mouse_obj_class)
+    g.DST_PROJECT_META = g.DST_PROJECT_META.add_obj_class(mouse_obj_class)
     g.API.project.update_meta(g.DST_PROJECT_ID, g.DST_PROJECT_META.to_json())
     logger.debug(f"Updated project meta with 'mouse' object class")
 
