@@ -72,7 +72,7 @@ def apply_detector():
     model_meta = detector.get_model_meta()
     mouse_obj_class = g.DST_PROJECT_META.get_obj_class("mouse")
     if mouse_obj_class is None:
-        update_dst_project_meta(model_meta)
+        update_dst_project_meta()
 
     with g.PROGRESS_BAR(message="Detecting videos", total=len(g.VIDEOS_TO_DETECT)) as pbar:
         g.PROGRESS_BAR.show()
