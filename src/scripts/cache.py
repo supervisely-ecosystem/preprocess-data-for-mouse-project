@@ -14,6 +14,7 @@ def init_cache() -> Dict[str, Any]:
         "source_project_id": g.PROJECT_ID,
         "target_project_id": g.DST_PROJECT_ID,
         "videos": {},
+        "target_to_source": {},  # mapping from uploaded video/clip id to source
     }
 
     save_cache(cache_data)
@@ -84,9 +85,21 @@ def add_video_to_cache(
             "is_test": getattr(video_info, "is_test", False),
             "clips": {},
         }
+        if hasattr(video_info, "train_data_id") and video_info.train_data_id is not None:
+            cache_data["videos"][video_id]["train_data_id"] = video_info.train_data_id
+            cache_data.setdefault("target_to_source", {})[str(video_info.train_data_id)] = {
+                "source_video_id": video_id,
+                "clip_id": None,
+            }
     else:
         cache_data["videos"][video_id]["is_uploaded"] = is_uploaded
         cache_data["videos"][video_id]["is_detected"] = is_detected
+        if hasattr(video_info, "train_data_id") and video_info.train_data_id is not None:
+            cache_data["videos"][video_id]["train_data_id"] = video_info.train_data_id
+            cache_data.setdefault("target_to_source", {})[str(video_info.train_data_id)] = {
+                "source_video_id": video_id,
+                "clip_id": None,
+            }
 
     save_cache(cache_data)
     if upload:
@@ -115,7 +128,7 @@ def add_single_clip_to_cache(clip_info: VideoMetaData) -> None:
         cache_data = load_cache()
 
     clip_id = str(getattr(clip_info, "clip_id", hash(clip_info.name)))
-    cache_data["videos"][video_id].setdefault("clips", {})[clip_id] = {
+    clip_data = {
         "clip_id": clip_id,
         "clip_name": clip_info.name,
         "label": clip_info.label,
@@ -124,6 +137,15 @@ def add_single_clip_to_cache(clip_info: VideoMetaData) -> None:
         "end_frame": clip_info.end_frame,
         "is_detected": getattr(clip_info, "is_detected", False),
     }
+
+    if hasattr(clip_info, "train_data_id") and clip_info.train_data_id is not None:
+        clip_data["train_data_id"] = clip_info.train_data_id
+        cache_data.setdefault("target_to_source", {})[str(clip_info.train_data_id)] = {
+            "source_video_id": video_id,
+            "clip_id": clip_id,
+        }
+
+    cache_data["videos"][video_id].setdefault("clips", {})[clip_id] = clip_data
 
     save_cache(cache_data)
     upload_cache()
@@ -159,24 +181,54 @@ def add_clips_to_cache(video_info: VideoMetaData) -> None:
 def update_detection_status(video_id: str, is_detected: bool = True) -> None:
     cache_data = load_cache()
     video_id = str(video_id)
+    videos = cache_data.get("videos", {})
 
-    if video_id in cache_data.get("videos", {}):
-        cache_data["videos"][video_id]["is_detected"] = is_detected
+    target_map = cache_data.get("target_to_source", {})
+    if video_id in target_map:
+        map_info = target_map[video_id]
+        source_video_id = map_info["source_video_id"]
+        clip_id = map_info.get("clip_id")
+        if clip_id:
+            videos[source_video_id]["clips"][clip_id]["is_detected"] = is_detected
+            logger.debug(
+                f"Detection status updated via mapping for clip target_id: '{video_id}' (source clip id: '{clip_id}')"
+            )
+        else:
+            videos[source_video_id]["is_detected"] = is_detected
+            logger.debug(
+                f"Detection status updated via mapping for video target_id: '{video_id}' (source id: '{source_video_id}')"
+            )
+        save_cache(cache_data)
+        upload_cache()
+        return
+
+    # Fallback logic
+    if video_id in videos:
+        videos[video_id]["is_detected"] = is_detected
         save_cache(cache_data)
         upload_cache()
         logger.debug(f"Detection status updated for video id: '{video_id}'")
         return
 
-    videos = cache_data.get("videos", {})
     for full_video_id in videos:
         clips = videos[full_video_id].get("clips", {})
-        for clip_id in clips:
-            if clip_id == video_id:
-                clips[clip_id]["is_detected"] = is_detected
-                save_cache(cache_data)
-                upload_cache()
-                logger.debug(
-                    f"Detection status updated for clip: {video_id} (video id: '{full_video_id}')"
-                )
-                return
+        if video_id in clips:
+            clips[video_id]["is_detected"] = is_detected
+            save_cache(cache_data)
+            upload_cache()
+            logger.debug(
+                f"Detection status updated for clip: {video_id} (video id: '{full_video_id}')"
+            )
+            return
+
+    for full_video_id, video_data in videos.items():
+        if video_data.get("train_data_id") == video_id:
+            video_data["is_detected"] = is_detected
+            save_cache(cache_data)
+            upload_cache()
+            logger.debug(
+                f"Detection status updated for video with train_data_id: '{video_id}' (source id: '{full_video_id}')"
+            )
+            return
+
     logger.debug(f"Video ID: '{video_id}' not found in cache")

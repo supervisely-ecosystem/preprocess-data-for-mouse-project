@@ -32,7 +32,12 @@ class InputStep(BaseStep):
         self.use_cache_checkbox = Checkbox(self.use_cache_text, checked=True)
         self.use_cache_checkbox.disable()
 
-        widgets = [self.source_project_field, self.target_project_field, self.use_cache_checkbox]
+        widgets = [
+            self.source_project_field,
+            self.target_project_field,
+            self.use_cache_checkbox,
+            g.PROGRESS_BAR_PROJECT,
+        ]
 
         super().__init__(
             title="Input Project",
@@ -44,62 +49,83 @@ class InputStep(BaseStep):
         self.hide_validation()
 
     def check_project(self):
-        logger.info("Checking project")
+        logger.info("Fetching Project Data")
 
         cache_data = download_cache()
-        original_project_data = {}
-        for dataset in g.API.dataset.get_list(g.PROJECT_ID, recursive=True):
-            original_project_data[dataset.name] = {
-                video.name: video for video in g.API.video.get_list(dataset.id)
-            }
+        source_datasets = g.API.dataset.get_list(g.PROJECT_ID, recursive=True)
+        target_datasets = g.API.dataset.get_list(g.DST_PROJECT_ID, recursive=True)
+        total_datasets = len(source_datasets) + len(target_datasets)
 
-        target_project_data = {}
-        for dataset in g.API.dataset.get_list(g.DST_PROJECT_ID, recursive=True):
-            target_project_data[dataset.name] = {
-                video.name: video for video in g.API.video.get_list(dataset.id)
-            }
+        source_videos = {}
+        target_videos_by_id = {}
+        with g.PROGRESS_BAR_PROJECT(message="Fetching Datasets", total=total_datasets) as pbar:
+            g.PROGRESS_BAR_PROJECT.show()
+            for ds in source_datasets:
+                videos = g.API.video.get_list(ds.id)
+                for v in videos:
+                    source_videos[str(v.id)] = {
+                        "video": v,
+                        "dataset_id": ds.id,
+                        "dataset_name": ds.name,
+                    }
+                pbar.update(1)
+
+            for ds in target_datasets:
+                vids = g.API.video.get_list(ds.id)
+                for v in vids:
+                    target_videos_by_id[str(v.id)] = v
+                pbar.update(1)
+        g.PROGRESS_BAR_PROJECT.hide()
 
         g.VIDEOS_TO_UPLOAD = []
         g.VIDEOS_TO_DETECT = []
 
-        target_videos_by_id = {}
-        target_videos_by_name = {}
-        for dataset_name, videos in target_project_data.items():
-            for video_name, video in videos.items():
-                target_videos_by_id[video.id] = video
-                target_videos_by_name[video_name] = video
+        # Determine videos to upload or detect
+        videos_cache = cache_data.get("videos", {})
+        target_map = cache_data.get("target_to_source", {})
 
-        for dataset_name, videos in original_project_data.items():
-            for video_name, video in videos.items():
-                video_id = str(video.id)
+        for src_id, src_vid_data in source_videos.items():
+            video_info = src_vid_data["video"]
+            if src_id not in videos_cache:
+                vm = VideoMetaData.from_sly_video(
+                    video_info,
+                    src_vid_data["dataset_name"],
+                    dataset_id=int(src_vid_data["dataset_id"]),
+                )
+                g.VIDEOS_TO_UPLOAD.append(vm)
+            else:
+                cache_entry = videos_cache[src_id]
+                if not cache_entry.get("is_uploaded", False):
+                    vm = VideoMetaData.from_sly_video(
+                        video_info,
+                        src_vid_data["dataset_name"],
+                        dataset_id=int(src_vid_data["dataset_id"]),
+                    )
+                    g.VIDEOS_TO_UPLOAD.append(vm)
+                elif not cache_entry.get("is_detected", False):
+                    target_id = cache_entry.get("train_data_id")
+                    if target_id and str(target_id) in target_videos_by_id:
+                        g.VIDEOS_TO_DETECT.append(target_videos_by_id[str(target_id)])
 
-                if video_id in cache_data.get("videos", {}):
-                    cached_video = cache_data["videos"][video_id]
-                    if cached_video.get("is_uploaded", False) and not cached_video.get(
-                        "is_detected", False
-                    ):
-                        video_name = cached_video.get("video_name")
-                        if video_name in target_videos_by_name:
-                            g.VIDEOS_TO_DETECT.append(target_videos_by_name[video_name])
-                else:
-                    video_metadata = VideoMetaData.from_sly_video(video, dataset_name)
-                    g.VIDEOS_TO_UPLOAD.append(video_metadata)
+        for target_id, map_info in target_map.items():
+            source_video_id = map_info["source_video_id"]
+            if source_video_id in videos_cache:
+                if not videos_cache[source_video_id].get("is_detected", False):
+                    if target_id in target_videos_by_id:
+                        g.VIDEOS_TO_DETECT.append(target_videos_by_id[target_id])
 
-        for video_id, video_data in cache_data.get("videos", {}).items():
-            for clip_id, clip_data in video_data.get("clips", {}).items():
-                if not clip_data.get("is_detected", False):
-                    clip_name = clip_data.get("clip_name")
-                    if clip_name in target_videos_by_name:
-                        g.VIDEOS_TO_DETECT.append(target_videos_by_name[clip_name])
+        unique_ids = set()
+        unique_detect_list = []
+        for v in g.VIDEOS_TO_DETECT:
+            if v.id not in unique_ids:
+                unique_ids.add(v.id)
+                unique_detect_list.append(v)
+        g.VIDEOS_TO_DETECT = unique_detect_list
 
-        cache_data["source_project_id"] = g.PROJECT_ID
-        cache_data["target_project_id"] = g.DST_PROJECT_ID
-
-        save_cache(cache_data)
-
-        text = ""
-        text += f"Videos to upload: {len(g.VIDEOS_TO_UPLOAD)}. "
-        text += f"Videos to detect: {len(g.VIDEOS_TO_DETECT) + len(g.VIDEOS_TO_UPLOAD)}. "
+        text = (
+            f"Videos to process: {len(g.VIDEOS_TO_UPLOAD)}. "
+            f"Undetected videos: {len(g.VIDEOS_TO_DETECT)}. "
+        )
         if len(g.VIDEOS_TO_UPLOAD) == 0 and len(g.VIDEOS_TO_DETECT) == 0:
             text += "No new videos to process. Upload new data to source project"
 

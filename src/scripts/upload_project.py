@@ -4,7 +4,11 @@ from typing import List
 from supervisely import batched
 from supervisely.api.video.video_api import VideoInfo
 from supervisely import logger
-from src.scripts.cache import add_video_to_cache, add_single_clip_to_cache, upload_cache
+from src.scripts.cache import (
+    add_video_to_cache,
+    add_single_clip_to_cache,
+    upload_cache,
+)
 
 
 def validate_batch(batch: List[VideoInfo], is_test: bool, pbar) -> List[VideoInfo]:
@@ -42,7 +46,10 @@ def upload_test_videos() -> List[VideoInfo]:
         g.PROGRESS_BAR.show()
         for video_metadata_batch in batched(g.TEST_VIDEOS, 10):
             validated_batch = validate_batch(video_metadata_batch, True, pbar)
-            video_names = [video_metadata.name for video_metadata in validated_batch]
+            video_names = [
+                f"{video_metadata.dataset_id}_{video_metadata.name}"
+                for video_metadata in validated_batch
+            ]
             video_links = [
                 video_metadata.source_video_info.link for video_metadata in validated_batch
             ]
@@ -77,8 +84,9 @@ def upload_test_videos() -> List[VideoInfo]:
                     paths=video_paths,
                 )
 
-            for video_metadata in validated_batch:
+            for i, video_metadata in enumerate(validated_batch):
                 video_metadata.is_test = True
+                video_metadata.train_data_id = uploaded_batch[i].id
                 add_video_to_cache(
                     video_metadata, is_uploaded=True, is_detected=False, upload=False
                 )
@@ -104,16 +112,21 @@ def upload_train_videos() -> List[VideoInfo]:
 
     training_videos = {}
     for video_metadata in g.TRAIN_VIDEOS:
-        training_videos[video_metadata.name] = video_metadata
+        training_videos[video_metadata.video_id] = video_metadata
 
     all_clips = {}
     for video_metadata in g.TRAIN_VIDEOS:
         for clip_metadata in video_metadata.clips:
-            if clip_metadata.source_video.name not in all_clips:
-                all_clips[clip_metadata.source_video.name] = {}
-            if clip_metadata.label not in all_clips[clip_metadata.source_video.name]:
-                all_clips[clip_metadata.source_video.name][clip_metadata.label] = []
-            all_clips[clip_metadata.source_video.name][clip_metadata.label].append(clip_metadata)
+            src_vid_id = (
+                clip_metadata.source_video.video_id
+                if isinstance(clip_metadata.source_video, object)
+                else None
+            )
+            if src_vid_id not in all_clips:
+                all_clips[src_vid_id] = {}
+            if clip_metadata.label not in all_clips[src_vid_id]:
+                all_clips[src_vid_id][clip_metadata.label] = []
+            all_clips[src_vid_id][clip_metadata.label].append(clip_metadata)
 
     move_empty_videos_to_test_set(training_videos, all_clips)
 
@@ -122,11 +135,11 @@ def upload_train_videos() -> List[VideoInfo]:
             message=f"Uploading training videos", total=len(all_clips.keys())
         ) as pbar:
             g.PROGRESS_BAR.show()
-            for video_name in all_clips.keys():
-                for label in all_clips[video_name].keys():
-                    clips = all_clips[video_name][label]
+            for src_vid_id in all_clips.keys():
+                for label in all_clips[src_vid_id].keys():
+                    clips = all_clips[src_vid_id][label]
                     with g.PROGRESS_BAR_2(
-                        message=f"Uploading '{label}' clips for video: '{video_name}'",
+                        message=f"Uploading '{label}' clips for video id: '{src_vid_id}'",
                         total=len(clips),
                     ) as pbar_2:
                         g.PROGRESS_BAR_2.show()
@@ -144,12 +157,13 @@ def upload_train_videos() -> List[VideoInfo]:
                                 validated_batch, uploaded_batch
                             ):
                                 clip_metadata.clip_id = uploaded_clip.id
+                                clip_metadata.train_data_id = uploaded_clip.id
                                 add_single_clip_to_cache(clip_metadata)
 
                             pbar_2.update(len(validated_batch))
                             g.VIDEOS_TO_DETECT.extend(uploaded_batch)
 
-                add_video_to_cache(training_videos[video_name], is_uploaded=True, is_detected=False)
+                add_video_to_cache(training_videos[src_vid_id], is_uploaded=True, is_detected=False)
                 pbar.update(1)
 
     g.PROGRESS_BAR_2.hide()

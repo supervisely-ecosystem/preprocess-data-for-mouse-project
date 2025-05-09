@@ -2,14 +2,16 @@ from supervisely.api.video.video_api import VideoInfo
 
 
 class VideoMetaData:
-    def __init__(self, name, dataset, video_id=None, path=None):
+    def __init__(self, name, dataset, video_id=None, path=None, dataset_id=None):
         self.name = name
         self.dataset = dataset
+        self.dataset_id = dataset_id
         self.video_id = video_id
         self.path = path
         self.split_path = None
         self.split_ann_path = None
         self.is_detected = False
+        self.train_data_id = None
 
         self.clips = []
         self.clips_anns = []
@@ -26,8 +28,10 @@ class VideoMetaData:
             "name": self.name,
             "dataset": self.dataset,
             "video_id": self.video_id,
+            "train_data_id": self.train_data_id,
             "path": self.path,
             "is_detected": self.is_detected,
+            "dataset_id": self.dataset_id,
             "clips": [
                 clip.to_dict() if isinstance(clip, VideoMetaData) else clip for clip in self.clips
             ],
@@ -43,11 +47,12 @@ class VideoMetaData:
         }
 
     @staticmethod
-    def from_sly_video(video: VideoInfo, dataset_name: str):
+    def from_sly_video(video: VideoInfo, dataset_name: str, dataset_id: int = None):
         video_info = VideoMetaData(
             name=video.name,
             dataset=dataset_name,
             video_id=video.id,
+            dataset_id=dataset_id,
         )
         video_info.source_video_info = video
         return video_info
