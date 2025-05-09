@@ -7,12 +7,14 @@ from supervisely.video_annotation.key_id_map import KeyIdMap
 from supervisely.io.json import dump_json_file
 from supervisely.io.fs import mkdir
 
+
 def get_annotation_path(video_path):
-    return video_path.replace("/video/", "/ann/") + '.json'
+    return video_path.replace("/video/", "/ann/") + ".json"
+
 
 def split_project():
     mkdir(g.SPLIT_PROJECT_DIR, True)
-    
+
     train_dir = os.path.join(g.SPLIT_PROJECT_DIR, "train")
     train_video_dir = os.path.join(train_dir, "video")
     train_ann_dir = os.path.join(train_dir, "ann")
@@ -20,14 +22,14 @@ def split_project():
     test_dir = os.path.join(g.SPLIT_PROJECT_DIR, "test")
     test_video_dir = os.path.join(test_dir, "video")
     test_ann_dir = os.path.join(test_dir, "ann")
-    
+
     os.makedirs(train_dir, exist_ok=True)
     os.makedirs(test_dir, exist_ok=True)
     os.makedirs(train_video_dir, exist_ok=True)
     os.makedirs(train_ann_dir, exist_ok=True)
     os.makedirs(test_video_dir, exist_ok=True)
     os.makedirs(test_ann_dir, exist_ok=True)
-    
+
     src_meta_path = os.path.join(g.PROJECT_DIR, "meta.json")
     dst_meta_path = os.path.join(g.SPLIT_PROJECT_DIR, "meta.json")
     if not os.path.exists(dst_meta_path) and os.path.exists(src_meta_path):
@@ -48,10 +50,12 @@ def split_project():
                 ann_path = get_annotation_path(video_info.path)
                 shutil.copy(ann_path, dst_ann_path)
             else:
-                logger.debug(f"Video '{video_info.name}' already exists in train directory. It was removed from train videos.")
+                logger.debug(
+                    f"Video '{video_info.name}' already exists in train directory. It was removed from train videos."
+                )
                 g.TRAIN_VIDEOS.remove(video_info)
             progress_bar.update(1)
-            
+
         for video_info in g.TEST_VIDEOS:
             dst_video_path = os.path.join(test_video_dir, video_info.name)
             dst_ann_path = os.path.join(test_ann_dir, video_info.name + ".json")
@@ -61,7 +65,9 @@ def split_project():
                 ann_path = get_annotation_path(video_info.path)
                 shutil.copy(ann_path, dst_ann_path)
             else:
-                logger.debug(f"Video '{video_info.name}' already exists in test directory. It was removed from test videos.")
+                logger.debug(
+                    f"Video '{video_info.name}' already exists in test directory. It was removed from test videos."
+                )
                 g.TEST_VIDEOS.remove(video_info)
             progress_bar.update(1)
 

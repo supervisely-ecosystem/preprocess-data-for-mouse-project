@@ -23,7 +23,9 @@ PROJECT_INFO: sly.ProjectInfo = API.project.get_info_by_id(PROJECT_ID)
 PROJECT_META: sly.ProjectMeta = sly.ProjectMeta.from_json(API.project.get_meta(PROJECT_ID))
 
 DST_PROJECT_NAME = "Training Data Test"
-DST_PROJECT_INFO = API.project.get_or_create(WORKSPACE_ID, DST_PROJECT_NAME, type=sly.ProjectType.VIDEOS)
+DST_PROJECT_INFO = API.project.get_or_create(
+    WORKSPACE_ID, DST_PROJECT_NAME, type=sly.ProjectType.VIDEOS
+)
 DST_PROJECT_INFO = API.project.get_info_by_id(DST_PROJECT_INFO.id)
 DST_PROJECT_ID = DST_PROJECT_INFO.id
 DST_PROJECT_META: sly.ProjectMeta = sly.ProjectMeta.from_json(API.project.get_meta(DST_PROJECT_ID))
