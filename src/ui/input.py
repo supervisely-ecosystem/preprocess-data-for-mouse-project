@@ -109,10 +109,21 @@ class InputStep(BaseStep):
 
         for target_id, map_info in target_map.items():
             source_video_id = map_info["source_video_id"]
+            clip_id = map_info.get("clip_id")
+
             if source_video_id in videos_cache:
-                if not videos_cache[source_video_id].get("is_detected", False):
-                    if target_id in target_videos_by_id:
-                        g.VIDEOS_TO_DETECT.append(target_videos_by_id[target_id])
+                if clip_id:
+                    if clip_id in videos_cache[source_video_id].get(
+                        "clips", {}
+                    ) and not videos_cache[source_video_id]["clips"][clip_id].get(
+                        "is_detected", False
+                    ):
+                        if target_id in target_videos_by_id:
+                            g.VIDEOS_TO_DETECT.append(target_videos_by_id[target_id])
+                else:
+                    if not videos_cache[source_video_id].get("is_detected", False):
+                        if target_id in target_videos_by_id:
+                            g.VIDEOS_TO_DETECT.append(target_videos_by_id[target_id])
 
         unique_ids = set()
         unique_detect_list = []

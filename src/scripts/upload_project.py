@@ -101,7 +101,7 @@ def upload_train_videos() -> List[VideoInfo]:
     if not g.TRAIN_VIDEOS:
         return
 
-    logger.info(f"Uploading '{len(g.TRAIN_VIDEOS)}' training clips")
+    logger.info(f"Uploading clips for {len(g.TRAIN_VIDEOS)} training videos")
     train_dataset = g.API.dataset.get_or_create(g.DST_PROJECT_ID, "train")
     label_datasets = {}
     for label in g.CLIP_LABELS:

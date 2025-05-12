@@ -191,12 +191,12 @@ def update_detection_status(video_id: str, is_detected: bool = True) -> None:
         if clip_id:
             videos[source_video_id]["clips"][clip_id]["is_detected"] = is_detected
             logger.debug(
-                f"Detection status updated via mapping for clip target_id: '{video_id}' (source clip id: '{clip_id}')"
+                f"Detection status updated via mapping for clip target_id: '{video_id}' (source video id: '{source_video_id}')"
             )
         else:
             videos[source_video_id]["is_detected"] = is_detected
             logger.debug(
-                f"Detection status updated via mapping for video target_id: '{video_id}' (source id: '{source_video_id}')"
+                f"Detection status updated via mapping for video target_id: '{video_id}' (source video id: '{source_video_id}')"
             )
         save_cache(cache_data)
         upload_cache()
@@ -227,7 +227,7 @@ def update_detection_status(video_id: str, is_detected: bool = True) -> None:
             save_cache(cache_data)
             upload_cache()
             logger.debug(
-                f"Detection status updated for video with train_data_id: '{video_id}' (source id: '{full_video_id}')"
+                f"Detection status updated for video with train_data_id: '{video_id}' (source video id: '{full_video_id}')"
             )
             return
 
