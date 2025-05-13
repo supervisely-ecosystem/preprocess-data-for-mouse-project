@@ -147,7 +147,7 @@ def upload_train_videos() -> List[VideoInfo]:
                         for clips_batch in batched(clips, 10):
                             validated_batch = validate_batch(clips_batch, False, pbar_2)
                             clip_names = [
-                                f"{clip_metadata.dataset_id}_{clip_metadata.name}"
+                                f"{clip_metadata.source_video.dataset_id}_{clip_metadata.source_video.video_id}_{clip_metadata.name}"
                                 for clip_metadata in validated_batch
                             ]
                             clip_paths = [clip_metadata.path for clip_metadata in validated_batch]
