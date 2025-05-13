@@ -2,7 +2,7 @@
 
 <img src=""/>
 
-# Preprocess Data for Mouse Project
+# Preprocess Data for Mouse Action Recognition
 
 <p align="center">
   <a href="#Overview">Overview</a> •
