@@ -9,9 +9,10 @@ from src.scripts.cache import (
     add_single_clip_to_cache,
     upload_cache,
 )
+from src.scripts.video_metadata import VideoMetaData
 
 
-def validate_batch(batch: List[VideoInfo], is_test: bool, pbar) -> List[VideoInfo]:
+def validate_batch(batch: List[VideoInfo], is_test: bool, pbar) -> List[VideoMetaData]:
     validated_batch = []
     for video_metadata in batch:
         video_path = video_metadata.path
@@ -25,7 +26,7 @@ def validate_batch(batch: List[VideoInfo], is_test: bool, pbar) -> List[VideoInf
     return validated_batch
 
 
-def move_empty_videos_to_test_set(training_videos: dict, all_clips: dict) -> List[VideoInfo]:
+def move_empty_videos_to_test_set(training_videos: dict, all_clips: dict):
     empty_videos = training_videos.keys() - all_clips.keys()
     if len(empty_videos) == 0:
         return
@@ -145,7 +146,10 @@ def upload_train_videos() -> List[VideoInfo]:
                         g.PROGRESS_BAR_2.show()
                         for clips_batch in batched(clips, 10):
                             validated_batch = validate_batch(clips_batch, False, pbar_2)
-                            clip_names = [clip_metadata.name for clip_metadata in validated_batch]
+                            clip_names = [
+                                f"{clip_metadata.dataset_id}_{clip_metadata.name}"
+                                for clip_metadata in validated_batch
+                            ]
                             clip_paths = [clip_metadata.path for clip_metadata in validated_batch]
                             uploaded_batch = g.API.video.upload_paths(
                                 dataset_id=label_datasets[label].id,
