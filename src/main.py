@@ -96,10 +96,12 @@ def process_project():
 
     except Exception as e:
         output.show_validation(f"Error: {str(e)}", "error")
-        input.enable()
-        connect.enable()
-        splits.enable()
+        # input.enable()
+        # connect.enable()
+        # splits.enable()
+        # output.notification_box.hide()
+        utils.hide_progress_bars()
         raise e
     finally:
-        output.notification_box.hide()
-        utils.hide_progress_bars()
+        app.shutdown()
+        exit()
