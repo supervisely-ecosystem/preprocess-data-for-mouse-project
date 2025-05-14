@@ -31,9 +31,9 @@ def move_empty_videos_to_test_set(training_videos: dict, all_clips: dict):
     if len(empty_videos) == 0:
         return
     logger.info(f"Found '{len(empty_videos)}' videos with no clips")
-    for video_name in empty_videos:
-        g.TRAIN_VIDEOS.remove(training_videos[video_name])
-        g.TEST_VIDEOS.append(training_videos[video_name])
+    for video_id in empty_videos:
+        g.TRAIN_VIDEOS.remove(training_videos[video_id])
+        g.TEST_VIDEOS.append(training_videos[video_id])
     logger.info(f"Moved '{len(empty_videos)}' videos with no clips to test set")
 
 
@@ -47,10 +47,7 @@ def upload_test_videos() -> List[VideoInfo]:
         g.PROGRESS_BAR.show()
         for video_metadata_batch in batched(g.TEST_VIDEOS, 10):
             validated_batch = validate_batch(video_metadata_batch, True, pbar)
-            video_names = [
-                f"{video_metadata.dataset_id}_{video_metadata.name}"
-                for video_metadata in validated_batch
-            ]
+            video_names = [video_metadata.name for video_metadata in validated_batch]
             video_links = [
                 video_metadata.source_video_info.link for video_metadata in validated_batch
             ]
@@ -147,7 +144,7 @@ def upload_train_videos() -> List[VideoInfo]:
                         for clips_batch in batched(clips, 10):
                             validated_batch = validate_batch(clips_batch, False, pbar_2)
                             clip_names = [
-                                f"{clip_metadata.source_video.dataset_id}_{clip_metadata.source_video.video_id}_{clip_metadata.name}"
+                                f"{clip_metadata.source_video.video_id}_{clip_metadata.name}"
                                 for clip_metadata in validated_batch
                             ]
                             clip_paths = [clip_metadata.path for clip_metadata in validated_batch]

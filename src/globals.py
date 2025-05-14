@@ -56,5 +56,5 @@ VIDEOS_TO_DETECT = []
 CLIP_LABELS = ["idle", "Self-Grooming", "Head-Body_TWITCH"]
 
 # Cache
-REMOTE_CACHE_PATH = f"/mouse-project-data/{PROJECT_ID}-{DST_PROJECT_ID}-cache.json"
-LOCAL_CACHE_PATH = os.path.join(APP_DATA_DIR, f"{PROJECT_ID}-{DST_PROJECT_ID}-cache.json")
+REMOTE_CACHE_PATH = f"/mouse-project-data/[{PROJECT_ID}-{DST_PROJECT_ID}] cache.json"
+LOCAL_CACHE_PATH = os.path.join(APP_DATA_DIR, f"[{PROJECT_ID}-{DST_PROJECT_ID}] cache.json")

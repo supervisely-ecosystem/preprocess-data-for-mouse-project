@@ -16,6 +16,7 @@ from supervisely.annotation.annotation import Annotation, ObjClassCollection
 from supervisely import logger
 from src.scripts.cache import update_detection_status
 from supervisely.geometry.rectangle import Rectangle
+from supervisely.nn.model.model_api import ModelAPI
 
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
@@ -74,11 +75,23 @@ def apply_detector():
     if mouse_obj_class is None:
         update_dst_project_meta()
 
+    detector = ModelAPI(g.API, g.SESSION_ID)
+
     with g.PROGRESS_BAR(message="Detecting videos", total=len(g.VIDEOS_TO_DETECT)) as pbar:
         g.PROGRESS_BAR.show()
         for video in g.VIDEOS_TO_DETECT:
             video_id = video.id
             video_shape = (video.frame_height, video.frame_width)
+
+            g.PROGRESS_BAR_2.show()
+            predictions = list(
+                g.PROGRESS_BAR_2(
+                    detector.predict_detached(video_id=video_id), message="Inferring video"
+                )
+            )
+            g.PROGRESS_BAR_2.hide()
+
+            predictions = [pred.annotation for pred in predictions]
 
             iterator = detector.inference_video_id_async(video_id)
             g.PROGRESS_BAR_2.show()

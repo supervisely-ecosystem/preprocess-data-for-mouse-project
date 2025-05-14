@@ -42,7 +42,7 @@ After processing is complete, you will get a new project with name `[source proj
   - "idle"
 - **test dataset** contains full-length original videos for validation purposes
 
-The application maintains a cache that tracks which videos have been processed (uploaded and detected). When you run the application again with the same source videos, it will only process new videos that haven't been processed before. Cache file is stored in the Team Files, you can find it by this path: `/mouse-project-data/<source project id>-<training data project id>-cache.json`, **don't remove it**.
+The application maintains a cache that tracks which videos have been processed (uploaded and detected). When you run the application again with the same source videos, it will only process new videos that haven't been processed before. Cache file is stored in the Team Files, you can find it by this path: `/mouse-project-data/[<source project id>-<training data project id>] cache.json`, **don't remove it**.
 
 # How to Run
 
