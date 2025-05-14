@@ -19,7 +19,8 @@ def validate_batch(batch: List[VideoInfo], is_test: bool, pbar) -> List[VideoMet
         if is_test:
             video_path = video_metadata.split_path
         if not os.path.exists(video_path):
-            logger.warning(f"Video file not found: {video_path}")
+            logger.debug(f"Video file not found: {video_path}")
+            add_video_to_cache(video_metadata, is_uploaded=False, is_detected=False, upload=False)
             pbar.update(1)
             continue
         validated_batch.append(video_metadata)
@@ -30,18 +31,18 @@ def move_empty_videos_to_test_set(training_videos: dict, all_clips: dict):
     empty_videos = training_videos.keys() - all_clips.keys()
     if len(empty_videos) == 0:
         return
-    logger.info(f"Found '{len(empty_videos)}' videos with no clips")
+    logger.info(f"Found {len(empty_videos)} videos with no clips")
     for video_id in empty_videos:
         g.TRAIN_VIDEOS.remove(training_videos[video_id])
         g.TEST_VIDEOS.append(training_videos[video_id])
-    logger.info(f"Moved '{len(empty_videos)}' videos with no clips to test set")
+    logger.info(f"Moved {len(empty_videos)} videos with no clips to test set")
 
 
 def upload_test_videos() -> List[VideoInfo]:
     if not g.TEST_VIDEOS:
         return
 
-    logger.info(f"Uploading '{len(g.TEST_VIDEOS)}' test videos")
+    logger.info(f"Uploading {len(g.TEST_VIDEOS)} test videos")
     test_dataset = g.API.dataset.get_or_create(g.DST_PROJECT_ID, "test")
     with g.PROGRESS_BAR(message=f"Uploading test videos", total=len(g.TEST_VIDEOS)) as pbar:
         g.PROGRESS_BAR.show()
@@ -92,7 +93,7 @@ def upload_test_videos() -> List[VideoInfo]:
             g.VIDEOS_TO_DETECT.extend(uploaded_batch)
             pbar.update(len(validated_batch))
         g.PROGRESS_BAR.hide()
-    logger.info(f"'{len(g.TEST_VIDEOS)}' test videos were uploaded")
+    logger.info(f"{len(g.TEST_VIDEOS)} test videos were uploaded")
 
 
 def upload_train_videos() -> List[VideoInfo]:
@@ -169,7 +170,7 @@ def upload_train_videos() -> List[VideoInfo]:
 
     g.PROGRESS_BAR_2.hide()
     g.PROGRESS_BAR.hide()
-    logger.info(f"'{len(g.TRAIN_VIDEOS)}' training clips were uploaded")
+    logger.info(f"Training clips for {len(g.TRAIN_VIDEOS)} videos were uploaded")
 
 
 def upload_project() -> List[VideoInfo]:

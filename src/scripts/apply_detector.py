@@ -16,7 +16,6 @@ from supervisely.annotation.annotation import Annotation, ObjClassCollection
 from supervisely import logger
 from src.scripts.cache import update_detection_status
 from supervisely.geometry.rectangle import Rectangle
-from supervisely.nn.model.model_api import ModelAPI
 
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
@@ -69,8 +68,7 @@ def update_dst_project_meta():
 
 
 def apply_detector():
-    # detector = Session(g.API, g.SESSION_ID)
-    detector = ModelAPI(g.API, g.SESSION_ID)
+    detector = Session(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
     mouse_obj_class = g.DST_PROJECT_META.get_obj_class("mouse")
     if mouse_obj_class is None:
@@ -82,21 +80,10 @@ def apply_detector():
             video_id = video.id
             video_shape = (video.frame_height, video.frame_width)
 
+            iterator = detector.inference_video_id_async(video_id)
             g.PROGRESS_BAR_2.show()
-            predictions = list(
-                g.PROGRESS_BAR_2(
-                    detector.predict_detached(video_id=video_id), message="Inferring video"
-                )
-            )
+            predictions = list(g.PROGRESS_BAR_2(iterator, message="Inferring video"))
             g.PROGRESS_BAR_2.hide()
-
-            predictions = [pred.annotation for pred in predictions]
-
-            # Legacy code
-            # iterator = detector.inference_video_id_async(video_id)
-            # g.PROGRESS_BAR_2.show()
-            # predictions = list(g.PROGRESS_BAR_2(iterator, message="Inferring video"))
-            # g.PROGRESS_BAR_2.hide()
 
             frame_range = (0, video.frames_count - 1)
             frame_to_annotation = frame_index_to_annotation(predictions, frame_range, model_meta)
