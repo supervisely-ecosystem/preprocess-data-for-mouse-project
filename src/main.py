@@ -104,4 +104,3 @@ def process_project():
         raise e
     finally:
         app.shutdown()
-        exit()

@@ -1,5 +1,3 @@
-from typing import List
-from supervisely.project import ProjectMeta
 from supervisely.api.video.video_api import VideoInfo
 from supervisely.annotation.obj_class import ObjClass
 import src.globals as g
@@ -16,6 +14,7 @@ from supervisely.annotation.annotation import Annotation, ObjClassCollection
 from supervisely import logger
 from src.scripts.cache import update_detection_status
 from supervisely.geometry.rectangle import Rectangle
+from supervisely.nn.model.model_api import ModelAPI
 
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
@@ -68,7 +67,7 @@ def update_dst_project_meta():
 
 
 def apply_detector():
-    detector = Session(g.API, g.SESSION_ID)
+    detector = ModelAPI(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
     mouse_obj_class = g.DST_PROJECT_META.get_obj_class("mouse")
     if mouse_obj_class is None:
@@ -77,13 +76,16 @@ def apply_detector():
     with g.PROGRESS_BAR(message="Detecting videos", total=len(g.VIDEOS_TO_DETECT)) as pbar:
         g.PROGRESS_BAR.show()
         for video in g.VIDEOS_TO_DETECT:
+            video: VideoInfo
             video_id = video.id
             video_shape = (video.frame_height, video.frame_width)
 
-            iterator = detector.inference_video_id_async(video_id)
-            g.PROGRESS_BAR_2.show()
-            predictions = list(g.PROGRESS_BAR_2(iterator, message="Inferring video"))
-            g.PROGRESS_BAR_2.hide()
+            predictions = []
+            with g.PROGRESS_BAR_2(message="Inferring video", total=video.frames_count) as pbar2:
+                g.PROGRESS_BAR_2.show()
+                for pred in detector.predict_detached(video_id=video_id):
+                    predictions.append(pred.annotation)
+                    pbar2.update(1)
 
             frame_range = (0, video.frames_count - 1)
             frame_to_annotation = frame_index_to_annotation(predictions, frame_range, model_meta)
@@ -102,4 +104,5 @@ def apply_detector():
             update_detection_status(str(video_id))
 
             pbar.update(1)
+    g.PROGRESS_BAR_2.hide()
     g.PROGRESS_BAR.hide()
