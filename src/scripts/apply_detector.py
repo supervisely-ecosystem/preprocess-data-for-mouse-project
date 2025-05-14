@@ -69,13 +69,12 @@ def update_dst_project_meta():
 
 
 def apply_detector():
-    detector = Session(g.API, g.SESSION_ID)
+    # detector = Session(g.API, g.SESSION_ID)
+    detector = ModelAPI(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
     mouse_obj_class = g.DST_PROJECT_META.get_obj_class("mouse")
     if mouse_obj_class is None:
         update_dst_project_meta()
-
-    detector = ModelAPI(g.API, g.SESSION_ID)
 
     with g.PROGRESS_BAR(message="Detecting videos", total=len(g.VIDEOS_TO_DETECT)) as pbar:
         g.PROGRESS_BAR.show()
@@ -93,10 +92,11 @@ def apply_detector():
 
             predictions = [pred.annotation for pred in predictions]
 
-            iterator = detector.inference_video_id_async(video_id)
-            g.PROGRESS_BAR_2.show()
-            predictions = list(g.PROGRESS_BAR_2(iterator, message="Inferring video"))
-            g.PROGRESS_BAR_2.hide()
+            # Legacy code
+            # iterator = detector.inference_video_id_async(video_id)
+            # g.PROGRESS_BAR_2.show()
+            # predictions = list(g.PROGRESS_BAR_2(iterator, message="Inferring video"))
+            # g.PROGRESS_BAR_2.hide()
 
             frame_range = (0, video.frames_count - 1)
             frame_to_annotation = frame_index_to_annotation(predictions, frame_range, model_meta)
