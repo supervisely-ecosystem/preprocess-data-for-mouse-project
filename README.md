@@ -1,6 +1,6 @@
 <div align="center" markdown>
 
-<img src="https://github.com/supervisely-ecosystem/preprocess-data-for-mouse-project/releases/download/v0.0.1/poster_mouse_preproc.jpg"/>
+<img src="https://github.com/supervisely-ecosystem/preprocess-data-for-mouse-project/releases/download/v0.0.1/poster_mouse_preproc-black.jpg"/>
 
 # Preprocess Data for Mouse Action Recognition
 
