@@ -214,6 +214,7 @@ def download_dst_project():
 
 
 def download_project():
+    download_dst_project()
     create_project_dir()
     create_cache_project_dir()
     video_dataset_info = get_dataset_paths()
