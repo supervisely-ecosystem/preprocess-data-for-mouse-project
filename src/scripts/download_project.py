@@ -4,7 +4,7 @@ from supervisely.api.dataset_api import DatasetInfo
 from supervisely.project.video_project import VideoProject, OpenMode, KeyIdMap
 from supervisely import logger
 import supervisely as sly
-from supervisely.project.download import _get_cache_dir
+from supervisely.project.download import _get_cache_dir, download_to_cache
 from supervisely import batched
 import os
 import shutil
@@ -197,6 +197,20 @@ def copy_videos_from_cache_to_project(video_dataset_info):
             video_metadata.path = project_video_path
             pbar.update(1)
     logger.info("Videos retrieved from cache")
+
+
+def download_dst_project():
+    target_datasets = g.API.dataset.get_list(g.DST_PROJECT_ID, recursive=True)
+    target_items = sum(ds.items_count for ds in target_datasets)
+    logger.debug("Downloading destination project", extra={"project_id": g.DST_PROJECT_ID, "items": target_items})
+    with g.PROGRESS_BAR(message="Downloading destination project", total=target_items) as pbar:
+        g.PROGRESS_BAR.show()
+        if len(target_datasets) > 0:
+            download_to_cache(g.API, g.DST_PROJECT_ID, progress_cb=pbar.update)
+        else:
+            video_project = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
+            video_project.set_meta(g.DST_PROJECT_META)
+        g.PROGRESS_BAR.hide()
 
 
 def download_project():

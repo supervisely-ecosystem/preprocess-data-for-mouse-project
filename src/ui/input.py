@@ -57,12 +57,6 @@ class InputStep(BaseStep):
         target_datasets = g.API.dataset.get_list(g.DST_PROJECT_ID, recursive=True)
         total_datasets = len(source_datasets) + len(target_datasets)
 
-        target_items = sum(ds.items_count for ds in target_datasets)
-        with g.PROGRESS_BAR_PROJECT(message="Downloading destination project", total=target_items) as pbar:
-            g.PROGRESS_BAR_PROJECT.show()
-            download_to_cache(g.API, g.DST_PROJECT_ID, progress_cb=pbar.update)
-            g.PROGRESS_BAR_PROJECT.hide()
-
         source_videos = {}
         target_videos_by_id = {}
         with g.PROGRESS_BAR_PROJECT(message="Fetching Datasets", total=total_datasets) as pbar:
