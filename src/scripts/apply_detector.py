@@ -82,6 +82,22 @@ def find_video_dataset_in_dst_project_fs(
     return None
 
 
+def create_datasets(dst_project_fs: VideoProject):
+    datasets = [
+        "test",
+        "train",
+        "train/datasets/idle",
+        "train/datasets/Self-Grooming",
+        "train/datasets/Head-Body_TWITCH",
+    ]
+    for dataset in datasets:
+        if not dst_project_fs.datasets.get(dataset):
+            logger.debug(f"Creating dataset: {dataset}")
+            dst_project_fs.create_dataset(dataset)
+        else:
+            logger.debug(f"Dataset already exists: {dataset}")
+
+
 def apply_detector():
     detector = ModelAPI(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
@@ -90,10 +106,15 @@ def apply_detector():
         update_dst_project_meta()
 
     try:
+        # @TODO: READ project always fails
         dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
+        logger.info("Destination project cache found")
     except:
+        logger.info("Destination project cache not found, creating new one")
+        mkdir(g.DST_PROJECT_PATH, True)
         dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
 
+    create_datasets(dst_project_fs)
     dst_project_fs.set_meta(g.DST_PROJECT_META)
     videos_to_detect = g.VIDEOS_TO_DETECT.copy()
 
@@ -126,8 +147,10 @@ def apply_detector():
             )
             g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
 
+            # @TODO: find_video_dataset_in_dst_project_fs() will always return None because cached project doesnt have videos in it (yet)
+            # @TODO: cache project before apply_detector() ?
             dataset: VideoDataset = find_video_dataset_in_dst_project_fs(dst_project_fs, video)
-            dataset.add_item_file(video.name, None, video_annotation)
+            dataset.add_item_file(video.name, None, None)
 
             update_detection_status(str(video_id))
 
