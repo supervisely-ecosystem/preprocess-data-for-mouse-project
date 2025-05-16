@@ -1,11 +1,12 @@
 from supervisely.app.widgets import ProjectThumbnail, Checkbox, Text, Field
 import src.globals as g
-from supervisely.project.download import is_cached, _get_cache_dir
+from supervisely.project.download import is_cached, _get_cache_dir, download_to_cache
 from src.scripts.video_metadata import VideoMetaData
 from src.ui.base_step import BaseStep
 from src.scripts.cache import download_cache, load_cache, save_cache, upload_cache
 from supervisely import logger
-
+from supervisely.project.video_project import VideoProject, VideoDataset
+from supervisely.project.project import OpenMode
 
 class InputStep(BaseStep):
     def __init__(self):
@@ -55,6 +56,12 @@ class InputStep(BaseStep):
         source_datasets = g.API.dataset.get_list(g.PROJECT_ID, recursive=True)
         target_datasets = g.API.dataset.get_list(g.DST_PROJECT_ID, recursive=True)
         total_datasets = len(source_datasets) + len(target_datasets)
+
+        target_items = sum(ds.items_count for ds in target_datasets)
+        with g.PROGRESS_BAR_PROJECT(message="Downloading destination project", total=target_items) as pbar:
+            g.PROGRESS_BAR_PROJECT.show()
+            download_to_cache(g.API, g.DST_PROJECT_ID, progress_cb=pbar.update)
+            g.PROGRESS_BAR_PROJECT.hide()
 
         source_videos = {}
         target_videos_by_id = {}

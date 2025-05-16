@@ -54,8 +54,10 @@ def create_cache_project_dir():
     )
 
 
-def get_dataset_paths():
-    all_datasets = g.API.dataset.get_list(g.PROJECT_ID, recursive=True)
+def get_dataset_paths(project_id: int = None):
+    if project_id is None:
+        project_id = g.PROJECT_ID
+    all_datasets = g.API.dataset.get_list(project_id, recursive=True)
     datasets_by_id = {ds.id: ds for ds in all_datasets}
 
     def get_full_dataset_path(dataset_id):

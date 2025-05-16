@@ -15,6 +15,10 @@ from supervisely import logger
 from src.scripts.cache import update_detection_status
 from supervisely.geometry.rectangle import Rectangle
 from supervisely.nn.model.model_api import ModelAPI
+from supervisely.project.video_project import VideoProject, VideoDataset
+from supervisely.project.project import OpenMode
+
+from src.scripts.download_project import get_dataset_paths
 
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
@@ -66,12 +70,25 @@ def update_dst_project_meta():
     logger.debug(f"Updated project meta with 'mouse' object class")
 
 
+def find_video_dataset_in_dst_project_fs(project: VideoProject, video_info: VideoInfo) -> VideoDataset:
+    for dataset in project.datasets:
+        dataset: VideoDataset
+        if dataset.item_exists(video_info.name):
+            if dataset.get_item_info(video_info.name).id == video_info.id:
+                return dataset
+    return None
+
+
 def apply_detector():
     detector = ModelAPI(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
     mouse_obj_class = g.DST_PROJECT_META.get_obj_class("mouse")
     if mouse_obj_class is None:
         update_dst_project_meta()
+
+    dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
+    dst_project_fs.set_meta(g.DST_PROJECT_META)
+    videos_to_detect = g.VIDEOS_TO_DETECT.copy()
 
     with g.PROGRESS_BAR(message="Detecting videos", total=len(g.VIDEOS_TO_DETECT)) as pbar:
         g.PROGRESS_BAR.show()
@@ -101,8 +118,19 @@ def apply_detector():
                 message="Uploading annotation", total=len(video_annotation.figures)
             )
             g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
+            
+            dataset: VideoDataset = find_video_dataset_in_dst_project_fs(dst_project_fs, video)
+            dataset.add_item_file(video.name, None, video_annotation)
+
             update_detection_status(str(video_id))
 
             pbar.update(1)
+    
+    # Update video info in fs after annotation upload so that the cache is correct
+    updated_video_infos = g.API.video.get_info_by_id_batch(videos_to_detect)
+    for video_info in updated_video_infos:
+        dataset: VideoDataset = find_video_dataset_in_dst_project_fs(dst_project_fs, video_info)
+        dataset.add_item_file(video_info.name, None, None, item_info=video_info)
+
     g.PROGRESS_BAR_2.hide()
     g.PROGRESS_BAR.hide()

@@ -29,6 +29,7 @@ DST_PROJECT_INFO = API.project.get_or_create(
 DST_PROJECT_INFO = API.project.get_info_by_id(DST_PROJECT_INFO.id)
 DST_PROJECT_ID = DST_PROJECT_INFO.id
 DST_PROJECT_META: sly.ProjectMeta = sly.ProjectMeta.from_json(API.project.get_meta(DST_PROJECT_ID))
+DST_PROJECT_PATH = _get_cache_dir(DST_PROJECT_ID)
 
 
 # Directory paths
