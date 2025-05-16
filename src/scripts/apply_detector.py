@@ -82,14 +82,6 @@ def find_video_dataset_in_dst_project_fs(
     return None
 
 
-def create_dst_project_fs():
-    mkdir(g.DST_PROJECT_PATH, True)
-    dump_json_file(g.DST_PROJECT_META.to_json(), os.path.join(g.DST_PROJECT_PATH, "meta.json"))
-    dump_json_file(KeyIdMap().to_dict(), os.path.join(g.DST_PROJECT_PATH, "key_id_map.json"))
-    dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
-    return dst_project_fs
-
-
 def apply_detector():
     detector = ModelAPI(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
@@ -99,11 +91,9 @@ def apply_detector():
 
     try:
         dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
-    except RuntimeError as e:
-        if "Project is empty" in str(e):
-            dst_project_fs = create_dst_project_fs()
-        else:
-            raise e
+    except:
+        dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
+
     dst_project_fs.set_meta(g.DST_PROJECT_META)
     videos_to_detect = g.VIDEOS_TO_DETECT.copy()
 
