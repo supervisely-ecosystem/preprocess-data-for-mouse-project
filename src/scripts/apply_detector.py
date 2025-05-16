@@ -87,7 +87,6 @@ def create_dst_project_fs():
     dump_json_file(g.DST_PROJECT_META.to_json(), os.path.join(g.DST_PROJECT_PATH, "meta.json"))
     dump_json_file(KeyIdMap().to_dict(), os.path.join(g.DST_PROJECT_PATH, "key_id_map.json"))
     dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
-    dst_project_fs.set_meta(g.DST_PROJECT_META)
     return dst_project_fs
 
 
