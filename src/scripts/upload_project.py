@@ -108,6 +108,8 @@ def upload_test_videos() -> List[VideoInfo]:
                 )
 
             for video_name, video_path, video_info in zip(video_names, video_paths, uploaded_batch):
+                if test_dataset_fs.item_exists(video_name):
+                    test_dataset_fs.delete_item(video_name)
                 test_dataset_fs.add_item_file(video_name, video_path, ann=VideoAnnotation((video_info.frame_height, video_info.frame_width), video_info.frames_count), item_info=video_info)
 
             for i, video_metadata in enumerate(validated_batch):
@@ -200,6 +202,8 @@ def upload_train_videos() -> List[VideoInfo]:
                             for clip_name, clip_path, clip_info in zip(
                                 clip_names, clip_paths, uploaded_batch
                             ):
+                                if label_datasets_fs[label].item_exists(clip_name):
+                                    label_datasets_fs[label].delete_item(clip_name)
                                 label_datasets_fs[label].add_item_file(
                                     clip_name, clip_path, ann=VideoAnnotation((clip_info.frame_height, clip_info.frame_width), clip_info.frames_count), item_info=clip_info
                                 )
