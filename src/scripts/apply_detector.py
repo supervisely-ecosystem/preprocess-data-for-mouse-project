@@ -1,3 +1,4 @@
+import os
 from supervisely.api.video.video_api import VideoInfo
 from supervisely.annotation.obj_class import ObjClass
 import src.globals as g
@@ -17,6 +18,8 @@ from supervisely.nn.model.model_api import ModelAPI
 from supervisely.project.video_project import VideoProject, VideoDataset
 from supervisely.project.project import OpenMode
 from supervisely.io.fs import mkdir
+from supervisely.io.json import dump_json_file
+from supervisely.video_annotation.key_id_map import KeyIdMap
 
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
@@ -79,6 +82,15 @@ def find_video_dataset_in_dst_project_fs(
     return None
 
 
+def create_dst_project_fs():
+    mkdir(g.DST_PROJECT_PATH, True)
+    dump_json_file(g.DST_PROJECT_META.to_json(), os.path.join(g.DST_PROJECT_PATH, "meta.json"))
+    dump_json_file(KeyIdMap().to_dict(), os.path.join(g.DST_PROJECT_PATH, "key_id_map.json"))
+    dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
+    dst_project_fs.set_meta(g.DST_PROJECT_META)
+    return dst_project_fs
+
+
 def apply_detector():
     detector = ModelAPI(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
@@ -90,9 +102,7 @@ def apply_detector():
         dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
     except RuntimeError as e:
         if "Project is empty" in str(e):
-            mkdir(g.DST_PROJECT_PATH, True)
-            dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
-            dst_project_fs.set_meta(g.DST_PROJECT_META)
+            dst_project_fs = create_dst_project_fs()
         else:
             raise e
     dst_project_fs.set_meta(g.DST_PROJECT_META)
