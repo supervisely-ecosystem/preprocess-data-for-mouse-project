@@ -84,18 +84,18 @@ def find_video_dataset_in_dst_project_fs(
 
 def create_datasets(dst_project_fs: VideoProject):
     datasets = [
-        "test",
-        "train",
-        "train/datasets/idle",
-        "train/datasets/Self-Grooming",
-        "train/datasets/Head-Body_TWITCH",
+        ("test", "test"),
+        ("train", "train"),
+        ("train/idle", "train/datasets/idle"),
+        ("train/Self-Grooming", "train/datasets/Self-Grooming"),
+        ("train/Head-Body_TWITCH", "train/datasets/Head-Body_TWITCH"),
     ]
-    for dataset in datasets:
-        if not dst_project_fs.datasets.get(dataset):
-            logger.debug(f"Creating dataset: {dataset}")
-            dst_project_fs.create_dataset(dataset)
+    for dataset_name, dataset_path in datasets:
+        if not dst_project_fs.datasets.get(dataset_name):
+            logger.debug(f"Creating dataset: {dataset_name}")
+            dst_project_fs.create_dataset(dataset_name, dataset_path)
         else:
-            logger.debug(f"Dataset already exists: {dataset}")
+            logger.debug(f"Dataset already exists: {dataset_name}")
 
 
 def apply_detector():
