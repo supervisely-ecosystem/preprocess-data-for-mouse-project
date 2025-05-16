@@ -12,6 +12,7 @@ from src.scripts.cache import (
 from src.scripts.video_metadata import VideoMetaData
 from supervisely.project.video_project import VideoProject, VideoDataset
 from supervisely.project.project import OpenMode
+from supervisely.io.fs import clean_dir
 
 
 def validate_batch(batch: List[VideoInfo], is_test: bool, pbar) -> List[VideoMetaData]:
@@ -53,7 +54,15 @@ def upload_test_videos() -> List[VideoInfo]:
     if not g.TEST_VIDEOS:
         return
 
-    project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
+    try:
+        project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
+    except RuntimeError as e:
+        if "Project is empty" in str(e):
+            clean_dir(g.DST_PROJECT_PATH)
+            project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
+            project_fs.set_meta(g.DST_PROJECT_META)
+        else:
+            raise e
     test_dataset_fs = get_or_create_dataset_fs(project_fs, "test")
     
     logger.info(f"Uploading {len(g.TEST_VIDEOS)} test videos")
@@ -117,7 +126,15 @@ def upload_train_videos() -> List[VideoInfo]:
     if not g.TRAIN_VIDEOS:
         return
     
-    project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
+    try:
+        project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
+    except RuntimeError as e:
+        if "Project is empty" in str(e):
+            clean_dir(g.DST_PROJECT_PATH)
+            project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
+            project_fs.set_meta(g.DST_PROJECT_META)
+        else:
+            raise e
     train_dataset_fs = get_or_create_dataset_fs(project_fs, "train")
 
     label_datasets_fs = {}

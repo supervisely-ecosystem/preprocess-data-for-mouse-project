@@ -1,7 +1,6 @@
 from supervisely.api.video.video_api import VideoInfo
 from supervisely.annotation.obj_class import ObjClass
 import src.globals as g
-from supervisely.nn.inference.session import Session
 from supervisely.video_annotation.video_annotation import (
     VideoAnnotation,
     VideoObjectCollection,
@@ -17,8 +16,7 @@ from supervisely.geometry.rectangle import Rectangle
 from supervisely.nn.model.model_api import ModelAPI
 from supervisely.project.video_project import VideoProject, VideoDataset
 from supervisely.project.project import OpenMode
-
-from src.scripts.download_project import get_dataset_paths
+from supervisely.io.fs import clean_dir
 
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
@@ -86,7 +84,15 @@ def apply_detector():
     if mouse_obj_class is None:
         update_dst_project_meta()
 
-    dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
+    try:
+        dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
+    except RuntimeError as e:
+        if "Project is empty" in str(e):
+            clean_dir(g.DST_PROJECT_PATH)
+            dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
+            dst_project_fs.set_meta(g.DST_PROJECT_META)
+        else:
+            raise e
     dst_project_fs.set_meta(g.DST_PROJECT_META)
     videos_to_detect = g.VIDEOS_TO_DETECT.copy()
 
