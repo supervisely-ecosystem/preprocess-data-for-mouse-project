@@ -43,7 +43,10 @@ def move_empty_videos_to_test_set(training_videos: dict, all_clips: dict):
 
 
 def get_or_create_dataset_fs(project: VideoProject, dataset_name: str, parent_path: str = ""):
-    ds_path = os.path.join(parent_path, VideoDataset.datasets_dir_name, dataset_name)
+    if parent_path != "":
+        ds_path = os.path.join(parent_path, VideoDataset.datasets_dir_name, dataset_name)
+    else:
+        ds_path = dataset_name
     for dataset in project.datasets:
         dataset: VideoDataset
         if dataset.path == ds_path:
