@@ -136,7 +136,7 @@ def apply_detector():
     updated_video_infos = g.API.video.get_info_by_id_batch(videos_to_detect)
     for video_info in updated_video_infos:
         dataset: VideoDataset = find_video_dataset_in_dst_project_fs(dst_project_fs, video_info)
-        dataset.add_item_file(video_info.name, None, None, item_info=video_info)
+        dataset.add_item_file(video_info.name, None, ann=VideoAnnotation((video_info.frame_height, video_info.frame_width), video_info.frames_count), item_info=video_info)
 
     g.PROGRESS_BAR_2.hide()
     g.PROGRESS_BAR.hide()
