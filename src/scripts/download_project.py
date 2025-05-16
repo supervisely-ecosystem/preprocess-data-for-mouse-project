@@ -8,6 +8,7 @@ from supervisely.project.download import _get_cache_dir, download_to_cache
 from supervisely import batched
 import os
 import shutil
+from supervisely.io.fs import clean_dir
 
 
 def get_cache_log_message(cached: bool, to_download: List[DatasetInfo]) -> str:
@@ -208,6 +209,7 @@ def download_dst_project():
         if len(target_datasets) > 0:
             download_to_cache(g.API, g.DST_PROJECT_ID, progress_cb=pbar.update)
         else:
+            clean_dir(g.DST_PROJECT_PATH)
             video_project = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
             video_project.set_meta(g.DST_PROJECT_META)
         g.PROGRESS_BAR.hide()
