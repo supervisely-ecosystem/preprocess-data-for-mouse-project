@@ -3,6 +3,7 @@ from supervisely.annotation.annotation import Annotation, ObjClassCollection
 from supervisely.annotation.obj_class import ObjClass
 from supervisely.api.video.video_api import VideoInfo
 from supervisely.geometry.rectangle import Rectangle
+from supervisely.io.fs import mkdir
 from supervisely.nn.model.model_api import ModelAPI
 from supervisely.project.project import OpenMode
 from supervisely.project.video_project import VideoDataset, VideoProject
@@ -17,6 +18,7 @@ from supervisely.video_annotation.video_object import VideoObject
 
 import src.globals as g
 from src.scripts.cache import update_detection_status
+from src.scripts.download_project import download_dst_project
 
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
@@ -79,28 +81,15 @@ def find_video_dataset_in_dst_project_fs(
     return None
 
 
-def create_datasets(dst_project_fs: VideoProject):
-    datasets = [
-        ("test", "test"),
-        ("train", "train"),
-        ("train/idle", "train/datasets/idle"),
-        ("train/Self-Grooming", "train/datasets/Self-Grooming"),
-        ("train/Head-Body_TWITCH", "train/datasets/Head-Body_TWITCH"),
-    ]
-    for dataset_name, dataset_path in datasets:
-        if not dst_project_fs.datasets.get(dataset_name):
-            logger.debug(f"Creating dataset: {dataset_name}")
-            dst_project_fs.create_dataset(dataset_name, dataset_path)
-        else:
-            logger.debug(f"Dataset already exists: {dataset_name}")
-
-
 def apply_detector():
     detector = ModelAPI(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
     mouse_obj_class = g.DST_PROJECT_META.get_obj_class("mouse")
     if mouse_obj_class is None:
         update_dst_project_meta()
+
+    # to ensure that the dst project is up to date
+    download_dst_project()
 
     try:
         # @TODO: READ project always fails
@@ -110,10 +99,21 @@ def apply_detector():
         logger.info("Destination project cache not found, creating new one")
         mkdir(g.DST_PROJECT_PATH, True)
         dst_project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
-
-    create_datasets(dst_project_fs)
     dst_project_fs.set_meta(g.DST_PROJECT_META)
-    videos_to_detect = g.VIDEOS_TO_DETECT.copy()
+
+    datasets = []
+    for dataset in dst_project_fs.datasets:
+        datasets.append(f"{dataset.name}, {dataset.path}")
+    logger.debug(
+        f"Destination project datasets: {datasets}",
+        extra={"datasets": datasets},
+    )
+
+    video_id_to_dataset = {}
+    for dataset in dst_project_fs.datasets:
+        for video_name, _, _ in dataset.items():
+            video_info = dataset.get_item_info(video_name)
+            video_id_to_dataset[video_info.id] = dataset
 
     with g.PROGRESS_BAR(message="Detecting videos", total=len(g.VIDEOS_TO_DETECT)) as pbar:
         g.PROGRESS_BAR.show()
@@ -146,7 +146,7 @@ def apply_detector():
 
             video_info = g.API.video.get_info_by_id(video_id)
 
-            dataset: VideoDataset = find_video_dataset_in_dst_project_fs(dst_project_fs, video)
+            dataset: VideoDataset = video_id_to_dataset[video.id]
             dataset.add_item_file(video.name, None, video_annotation, item_info=video_info)
 
             update_detection_status(str(video_id))

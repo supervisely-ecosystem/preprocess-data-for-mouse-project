@@ -1,4 +1,5 @@
 import os
+
 import supervisely as sly
 from dotenv import load_dotenv
 from supervisely.app.widgets import Progress
@@ -7,7 +8,7 @@ from supervisely.project.download import _get_cache_dir
 # Load environment variables
 if sly.is_development():
     load_dotenv("local.env")
-    load_dotenv(os.path.expanduser("~/supervisely.env"))
+    load_dotenv(os.path.expanduser("~/supervisely(dev).env"))
 
 API: sly.Api = sly.Api.from_env()
 

@@ -5,6 +5,7 @@ from typing import List
 import supervisely as sly
 from supervisely import batched, logger
 from supervisely.api.dataset_api import DatasetInfo
+from supervisely.io.fs import mkdir
 from supervisely.project.download import _get_cache_dir, download_to_cache
 from supervisely.project.video_project import KeyIdMap, OpenMode, VideoProject
 
