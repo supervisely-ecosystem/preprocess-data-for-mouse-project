@@ -1,25 +1,22 @@
-import os
-from supervisely.api.video.video_api import VideoInfo
-from supervisely.annotation.obj_class import ObjClass
-import src.globals as g
-from supervisely.video_annotation.video_annotation import (
-    VideoAnnotation,
-    VideoObjectCollection,
-    FrameCollection,
-    VideoFigure,
-)
-from supervisely.video_annotation.frame import Frame
-from supervisely.video_annotation.video_object import VideoObject
-from supervisely.annotation.annotation import Annotation, ObjClassCollection
 from supervisely import logger
-from src.scripts.cache import update_detection_status
+from supervisely.annotation.annotation import Annotation, ObjClassCollection
+from supervisely.annotation.obj_class import ObjClass
+from supervisely.api.video.video_api import VideoInfo
 from supervisely.geometry.rectangle import Rectangle
 from supervisely.nn.model.model_api import ModelAPI
-from supervisely.project.video_project import VideoProject, VideoDataset
 from supervisely.project.project import OpenMode
-from supervisely.io.fs import mkdir
-from supervisely.io.json import dump_json_file
-from supervisely.video_annotation.key_id_map import KeyIdMap
+from supervisely.project.video_project import VideoDataset, VideoProject
+from supervisely.video_annotation.frame import Frame
+from supervisely.video_annotation.video_annotation import (
+    FrameCollection,
+    VideoAnnotation,
+    VideoFigure,
+    VideoObjectCollection,
+)
+from supervisely.video_annotation.video_object import VideoObject
+
+import src.globals as g
+from src.scripts.cache import update_detection_status
 
 
 def filter_annotation_by_classes(annotation_predictions: dict, selected_classes: list) -> dict:
@@ -147,27 +144,14 @@ def apply_detector():
             )
             g.API.video.annotation.append(video_id, video_annotation, None, progress_cb)
 
-            # @TODO: find_video_dataset_in_dst_project_fs() will always return None because cached project doesnt have videos in it (yet)
-            # @TODO: cache project before apply_detector() ?
+            video_info = g.API.video.get_info_by_id(video_id)
+
             dataset: VideoDataset = find_video_dataset_in_dst_project_fs(dst_project_fs, video)
-            dataset.add_item_file(video.name, None, None)
+            dataset.add_item_file(video.name, None, video_annotation, item_info=video_info)
 
             update_detection_status(str(video_id))
 
             pbar.update(1)
-
-    # Update video info in fs after annotation upload so that the cache is correct
-    updated_video_infos = g.API.video.get_info_by_id_batch(videos_to_detect)
-    for video_info in updated_video_infos:
-        dataset: VideoDataset = find_video_dataset_in_dst_project_fs(dst_project_fs, video_info)
-        dataset.add_item_file(
-            video_info.name,
-            None,
-            ann=VideoAnnotation(
-                (video_info.frame_height, video_info.frame_width), video_info.frames_count
-            ),
-            item_info=video_info,
-        )
 
     g.PROGRESS_BAR_2.hide()
     g.PROGRESS_BAR.hide()

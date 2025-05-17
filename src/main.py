@@ -2,16 +2,16 @@ import supervisely as sly
 from supervisely.app.widgets import Container, Stepper
 
 import src.globals as g
-from src.ui.input import input
-from src.ui.connect import connect
-from src.ui.splits import splits
-from src.ui.output import output
 import src.ui.utils as utils
-from src.scripts.download_project import download_project
-from src.scripts.split_project import split_project
-from src.scripts.make_training_clips import make_training_clips
 from src.scripts.apply_detector import apply_detector
+from src.scripts.download_project import download_dst_project, download_project
+from src.scripts.make_training_clips import make_training_clips
+from src.scripts.split_project import split_project
 from src.scripts.upload_project import upload_project
+from src.ui.connect import connect
+from src.ui.input import input
+from src.ui.output import output
+from src.ui.splits import splits
 
 stepper: Stepper = Stepper(widgets=[input.card, connect.card, splits.card, output.card])
 layout: Container = Container(widgets=[stepper])
@@ -74,6 +74,9 @@ def process_project():
     utils.show_progress_bars()
 
     try:
+        # 0. download or create dst project
+        download_dst_project()
+
         if len(g.VIDEOS_TO_UPLOAD) > 0:
             # 1. Download only new videos
             download_project()

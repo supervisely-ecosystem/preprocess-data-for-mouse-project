@@ -1,14 +1,14 @@
-from typing import List, Dict
-import src.globals as g
-from supervisely.api.dataset_api import DatasetInfo
-from supervisely.project.video_project import VideoProject, OpenMode, KeyIdMap
-from supervisely import logger
-import supervisely as sly
-from supervisely.project.download import _get_cache_dir, download_to_cache
-from supervisely import batched
 import os
 import shutil
-from supervisely.io.fs import mkdir
+from typing import List
+
+import supervisely as sly
+from supervisely import batched, logger
+from supervisely.api.dataset_api import DatasetInfo
+from supervisely.project.download import _get_cache_dir, download_to_cache
+from supervisely.project.video_project import KeyIdMap, OpenMode, VideoProject
+
+import src.globals as g
 
 
 def get_cache_log_message(cached: bool, to_download: List[DatasetInfo]) -> str:
@@ -219,7 +219,6 @@ def download_dst_project():
 
 
 def download_project():
-    download_dst_project()
     create_project_dir()
     create_cache_project_dir()
     video_dataset_info = get_dataset_paths()
