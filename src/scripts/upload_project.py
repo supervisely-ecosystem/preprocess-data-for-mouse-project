@@ -10,6 +10,10 @@ from src.scripts.cache import (
     upload_cache,
 )
 from src.scripts.video_metadata import VideoMetaData
+from supervisely.project.video_project import VideoProject, VideoDataset
+from supervisely.project.project import OpenMode
+from supervisely.io.fs import clean_dir
+from supervisely.video_annotation.video_annotation import VideoAnnotation
 
 
 def validate_batch(batch: List[VideoInfo], is_test: bool, pbar) -> List[VideoMetaData]:
@@ -38,9 +42,32 @@ def move_empty_videos_to_test_set(training_videos: dict, all_clips: dict):
     logger.info(f"Moved {len(empty_videos)} videos with no clips to test set")
 
 
+def get_or_create_dataset_fs(project: VideoProject, dataset_name: str, parent_path: str = ""):
+    if parent_path != "":
+        ds_path = os.path.join(parent_path, VideoDataset.datasets_dir_name, dataset_name)
+    else:
+        ds_path = dataset_name
+    for dataset in project.datasets:
+        dataset: VideoDataset
+        if dataset.path == ds_path:
+            return dataset
+    return project.create_dataset(dataset_name, ds_path)
+
+
 def upload_test_videos() -> List[VideoInfo]:
     if not g.TEST_VIDEOS:
         return
+
+    try:
+        project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
+    except RuntimeError as e:
+        if "Project is empty" in str(e):
+            clean_dir(g.DST_PROJECT_PATH)
+            project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
+            project_fs.set_meta(g.DST_PROJECT_META)
+        else:
+            raise e
+    test_dataset_fs = get_or_create_dataset_fs(project_fs, "test")
 
     logger.info(f"Uploading {len(g.TEST_VIDEOS)} test videos")
     test_dataset = g.API.dataset.get_or_create(g.DST_PROJECT_ID, "test")
@@ -83,6 +110,18 @@ def upload_test_videos() -> List[VideoInfo]:
                     paths=video_paths,
                 )
 
+            for video_name, video_path, video_info in zip(video_names, video_paths, uploaded_batch):
+                if test_dataset_fs.item_exists(video_name):
+                    test_dataset_fs.delete_item(video_name)
+                test_dataset_fs.add_item_file(
+                    video_name,
+                    video_path,
+                    ann=VideoAnnotation(
+                        (video_info.frame_height, video_info.frame_width), video_info.frames_count
+                    ),
+                    item_info=video_info,
+                )
+
             for i, video_metadata in enumerate(validated_batch):
                 video_metadata.is_test = True
                 video_metadata.train_data_id = uploaded_batch[i].id
@@ -99,6 +138,23 @@ def upload_test_videos() -> List[VideoInfo]:
 def upload_train_videos() -> List[VideoInfo]:
     if not g.TRAIN_VIDEOS:
         return
+
+    try:
+        project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.READ)
+    except RuntimeError as e:
+        if "Project is empty" in str(e):
+            clean_dir(g.DST_PROJECT_PATH)
+            project_fs = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
+            project_fs.set_meta(g.DST_PROJECT_META)
+        else:
+            raise e
+    train_dataset_fs = get_or_create_dataset_fs(project_fs, "train")
+
+    label_datasets_fs = {}
+    for label in g.CLIP_LABELS:
+        label_datasets_fs[label] = get_or_create_dataset_fs(
+            project_fs, label, train_dataset_fs.path
+        )
 
     logger.info(f"Uploading clips for {len(g.TRAIN_VIDEOS)} training videos")
     train_dataset = g.API.dataset.get_or_create(g.DST_PROJECT_ID, "train")
@@ -138,7 +194,7 @@ def upload_train_videos() -> List[VideoInfo]:
                 for label in all_clips[src_vid_id].keys():
                     clips = all_clips[src_vid_id][label]
                     with g.PROGRESS_BAR_2(
-                        message=f"Uploading '{label}' clips for video id: '{src_vid_id}'",
+                        message=f"Uploading '{label}' clips for video id: {src_vid_id}",
                         total=len(clips),
                     ) as pbar_2:
                         g.PROGRESS_BAR_2.show()
@@ -154,6 +210,21 @@ def upload_train_videos() -> List[VideoInfo]:
                                 names=clip_names,
                                 paths=clip_paths,
                             )
+
+                            for clip_name, clip_path, clip_info in zip(
+                                clip_names, clip_paths, uploaded_batch
+                            ):
+                                if label_datasets_fs[label].item_exists(clip_name):
+                                    label_datasets_fs[label].delete_item(clip_name)
+                                label_datasets_fs[label].add_item_file(
+                                    clip_name,
+                                    clip_path,
+                                    ann=VideoAnnotation(
+                                        (clip_info.frame_height, clip_info.frame_width),
+                                        clip_info.frames_count,
+                                    ),
+                                    item_info=clip_info,
+                                )
 
                             for clip_metadata, uploaded_clip in zip(
                                 validated_batch, uploaded_batch

@@ -4,10 +4,11 @@ from supervisely.api.dataset_api import DatasetInfo
 from supervisely.project.video_project import VideoProject, OpenMode, KeyIdMap
 from supervisely import logger
 import supervisely as sly
-from supervisely.project.download import _get_cache_dir
+from supervisely.project.download import _get_cache_dir, download_to_cache
 from supervisely import batched
 import os
 import shutil
+from supervisely.io.fs import mkdir
 
 
 def get_cache_log_message(cached: bool, to_download: List[DatasetInfo]) -> str:
@@ -68,30 +69,20 @@ def get_dataset_paths():
 
     video_dataset_info = {}
     for video_metadata in g.VIDEOS_TO_UPLOAD:
+        dataset_id = video_metadata.dataset_id
         dataset_name = video_metadata.dataset
-        dataset_id = None
+        dataset_path = get_full_dataset_path(dataset_id)
 
-        matching_datasets = [ds for ds in all_datasets if ds.name == dataset_name]
-        if len(matching_datasets) == 1:
-            dataset = matching_datasets[0]
-            dataset_id = dataset.id
-            dataset_path = get_full_dataset_path(dataset_id)
-        elif len(matching_datasets) > 1:
-            logger.warning(
-                f"Multiple datasets with name {dataset_name} found. Using the first one."
-            )
-            dataset = matching_datasets[0]
-            dataset_id = dataset.id
-            dataset_path = get_full_dataset_path(dataset_id)
-        else:
-            logger.warning(f"Dataset {dataset_name} not found for video {video_metadata.name}")
+        already_in = video_dataset_info.get(video_metadata.video_id, None)
+        if already_in is not None:
+            print(f"Video {video_metadata.name} already in video_dataset_info")
             continue
 
         video_dataset_info[video_metadata.video_id] = {
             "dataset_id": dataset_id,
+            "dataset_name": dataset_name,
             "dataset_path": dataset_path,
         }
-
     return video_dataset_info
 
 
@@ -197,7 +188,26 @@ def copy_videos_from_cache_to_project(video_dataset_info):
     logger.info("Videos retrieved from cache")
 
 
+def download_dst_project():
+    target_datasets = g.API.dataset.get_list(g.DST_PROJECT_ID, recursive=True)
+    target_items = sum(ds.items_count for ds in target_datasets)
+    logger.debug(
+        "Downloading destination project",
+        extra={"project_id": g.DST_PROJECT_ID, "items": target_items},
+    )
+    with g.PROGRESS_BAR(message="Downloading destination project", total=target_items) as pbar:
+        g.PROGRESS_BAR.show()
+        if len(target_datasets) > 0:
+            download_to_cache(g.API, g.DST_PROJECT_ID, progress_cb=pbar.update)
+        else:
+            mkdir(g.DST_PROJECT_PATH, True)
+            video_project = VideoProject(g.DST_PROJECT_PATH, OpenMode.CREATE)
+            video_project.set_meta(g.DST_PROJECT_META)
+        g.PROGRESS_BAR.hide()
+
+
 def download_project():
+    download_dst_project()
     create_project_dir()
     create_cache_project_dir()
     video_dataset_info = get_dataset_paths()

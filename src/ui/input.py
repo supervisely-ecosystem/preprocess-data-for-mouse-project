@@ -1,11 +1,12 @@
 from supervisely.app.widgets import ProjectThumbnail, Checkbox, Text, Field
 import src.globals as g
-from supervisely.project.download import is_cached, _get_cache_dir
+from supervisely.project.download import is_cached, _get_cache_dir, download_to_cache
 from src.scripts.video_metadata import VideoMetaData
 from src.ui.base_step import BaseStep
 from src.scripts.cache import download_cache, load_cache, save_cache, upload_cache
 from supervisely import logger
-
+from supervisely.project.video_project import VideoProject, VideoDataset
+from supervisely.project.project import OpenMode
 
 class InputStep(BaseStep):
     def __init__(self):
