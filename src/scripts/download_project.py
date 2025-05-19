@@ -170,7 +170,11 @@ def download_src_project():
     logger.info("Retrieving source project from cache")
     cache_size = get_cache_size(g.PROJECT_ID)
     with g.PROGRESS_BAR(
-        message="Retrieving source project from cache", total=cache_size, is_size=True
+        message="Retrieving source project from cache",
+        total=cache_size,
+        unit="B",
+        unit_scale=True,
+        unit_divisor=1024,
     ) as pbar:
         g.PROGRESS_BAR.show()
         copy_from_cache(g.PROJECT_ID, g.PROJECT_DIR, progress_cb=pbar.update)
