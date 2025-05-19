@@ -34,7 +34,7 @@ def split_project():
     os.makedirs(test_video_dir, exist_ok=True)
     os.makedirs(test_ann_dir, exist_ok=True)
 
-    src_meta_path = os.path.join(g.PROJECT_DIR, "meta.json")
+    src_meta_path = os.path.join(g.CACHED_PROJECT_DIR, "meta.json")
     dst_meta_path = os.path.join(g.SPLIT_PROJECT_DIR, "meta.json")
     if not os.path.exists(dst_meta_path) and os.path.exists(src_meta_path):
         shutil.copy(src_meta_path, dst_meta_path)
@@ -42,7 +42,7 @@ def split_project():
 
     # get videos paths in the project
     video_paths = {}
-    project = VideoProject(g.PROJECT_DIR, OpenMode.READ)
+    project = VideoProject(g.CACHED_PROJECT_DIR, OpenMode.READ)
     for dataset in project.datasets:
         dataset: VideoDataset
         for name, video_path, ann_path in dataset.items():

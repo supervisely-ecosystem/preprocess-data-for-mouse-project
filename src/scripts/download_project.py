@@ -37,5 +37,4 @@ def download_dst_project():
 
 def download_project():
     download_src_project()
-    g.PROJECT_DIR = _get_cache_dir(g.PROJECT_DIR)
-    return g.PROJECT_DIR
+    return g.CACHED_PROJECT_DIR
