@@ -8,7 +8,8 @@ from supervisely.project.download import _get_cache_dir
 # Load environment variables
 if sly.is_development():
     load_dotenv("local.env")
-    load_dotenv(os.path.expanduser("~/supervisely(dev).env"))
+    load_dotenv(os.path.expanduser("~/supervisely.env"))
+    # load_dotenv(os.path.expanduser("~/supervisely(dev).env"))
 
 API: sly.Api = sly.Api.from_env()
 
