@@ -41,45 +41,45 @@ def split_project():
     g.TEST_VIDEOS = g.VIDEOS_TO_UPLOAD[train_size:]
     with g.PROGRESS_BAR(message="Splitting videos", total=len(g.VIDEOS_TO_UPLOAD)) as progress_bar:
         g.PROGRESS_BAR.show()
-        for video_info in g.TRAIN_VIDEOS:
-            unique_name = f"{video_info.dataset_id}_{video_info.name}"
-            ann_path = get_annotation_path(video_info.path)
+        for video_metadata in g.TRAIN_VIDEOS:
+            unique_name = f"{video_metadata.dataset_id}_{video_metadata.name}"
+            ann_path = get_annotation_path(video_metadata.path)
 
             dst_video_path = os.path.join(train_video_dir, unique_name)
             dst_ann_path = os.path.join(train_ann_dir, unique_name + ".json")
 
-            if not os.path.exists(dst_video_path) and os.path.exists(video_info.path):
-                shutil.copy(video_info.path, dst_video_path)
+            if not os.path.exists(dst_video_path) and os.path.exists(video_metadata.path):
+                shutil.copy(video_metadata.path, dst_video_path)
                 shutil.copy(ann_path, dst_ann_path)
 
-                video_info.path = dst_video_path
-                video_info.set_split_path(dst_video_path)
+                video_metadata.path = dst_video_path
+                video_metadata.set_split_path(dst_video_path)
             else:
                 logger.debug(
-                    f"Video '{video_info.name}' already exists in train directory. It was removed from train videos."
+                    f"Video '{video_metadata.name}' already exists in train directory. It was removed from train videos."
                 )
-                g.TRAIN_VIDEOS.remove(video_info)
+                g.TRAIN_VIDEOS.remove(video_metadata)
             progress_bar.update(1)
 
-        for video_info in g.TEST_VIDEOS:
-            unique_name = f"{video_info.dataset_id}_{video_info.name}"
+        for video_metadata in g.TEST_VIDEOS:
+            unique_name = f"{video_metadata.dataset_id}_{video_metadata.name}"
 
             dst_video_path = os.path.join(test_video_dir, unique_name)
             dst_ann_path = os.path.join(test_ann_dir, unique_name + ".json")
 
-            ann_path = get_annotation_path(video_info.path)
+            ann_path = get_annotation_path(video_metadata.path)
 
-            if not os.path.exists(dst_video_path) and os.path.exists(video_info.path):
-                shutil.copy(video_info.path, dst_video_path)
+            if not os.path.exists(dst_video_path) and os.path.exists(video_metadata.path):
+                shutil.copy(video_metadata.path, dst_video_path)
                 shutil.copy(ann_path, dst_ann_path)
 
-                video_info.path = dst_video_path
-                video_info.set_split_path(dst_video_path)
+                video_metadata.path = dst_video_path
+                video_metadata.set_split_path(dst_video_path)
             else:
                 logger.debug(
-                    f"Video '{video_info.name}' already exists in test directory. It was removed from test videos."
+                    f"Video '{video_metadata.name}' already exists in test directory. It was removed from test videos."
                 )
-                g.TEST_VIDEOS.remove(video_info)
+                g.TEST_VIDEOS.remove(video_metadata)
             progress_bar.update(1)
 
     g.PROGRESS_BAR.hide()
