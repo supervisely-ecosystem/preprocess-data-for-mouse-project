@@ -4,55 +4,16 @@ from supervisely.api.dataset_api import DatasetInfo
 from supervisely.project.video_project import VideoProject, OpenMode, KeyIdMap
 from supervisely import logger
 import supervisely as sly
-from supervisely.project.download import _get_cache_dir, download_to_cache
+from supervisely.project.download import (
+    _get_cache_dir,
+    download_to_cache,
+    copy_from_cache,
+    get_cache_size,
+)
 from supervisely import batched
 import os
 import shutil
 from supervisely.io.fs import mkdir
-
-
-def get_cache_log_message(cached: bool, to_download: List[DatasetInfo]) -> str:
-    if not cached:
-        log_msg = "No cached datasets found"
-    else:
-        log_msg = "Using cached datasets: " + ", ".join(
-            f"{ds_info.name} ({ds_info.id})" for ds_info in cached
-        )
-
-    if not to_download:
-        log_msg += ". All datasets are cached. No datasets to download"
-    else:
-        log_msg += ". Downloading datasets: " + ", ".join(
-            f"{ds_info.name} ({ds_info.id})" for ds_info in to_download
-        )
-
-    return log_msg
-
-
-def create_project_dir():
-    if not os.path.exists(g.PROJECT_DIR):
-        os.makedirs(g.PROJECT_DIR)
-    if os.path.exists(os.path.join(g.PROJECT_DIR, "meta.json")):
-        sly.fs.silent_remove(os.path.join(g.PROJECT_DIR, "meta.json"))
-    sly.json.dump_json_file(g.PROJECT_META.to_json(), os.path.join(g.PROJECT_DIR, "meta.json"))
-    if os.path.exists(os.path.join(g.PROJECT_DIR, "key_id_map.json")):
-        sly.fs.silent_remove(os.path.join(g.PROJECT_DIR, "key_id_map.json"))
-    sly.json.dump_json_file(KeyIdMap().to_dict(), os.path.join(g.PROJECT_DIR, "key_id_map.json"))
-
-
-def create_cache_project_dir():
-    if not os.path.exists(g.CACHED_PROJECT_DIR):
-        os.makedirs(g.CACHED_PROJECT_DIR)
-    if os.path.exists(os.path.join(g.CACHED_PROJECT_DIR, "meta.json")):
-        sly.fs.silent_remove(os.path.join(g.CACHED_PROJECT_DIR, "meta.json"))
-    sly.json.dump_json_file(
-        g.PROJECT_META.to_json(), os.path.join(g.CACHED_PROJECT_DIR, "meta.json")
-    )
-    if os.path.exists(os.path.join(g.CACHED_PROJECT_DIR, "key_id_map.json")):
-        sly.fs.silent_remove(os.path.join(g.CACHED_PROJECT_DIR, "key_id_map.json"))
-    sly.json.dump_json_file(
-        KeyIdMap().to_dict(), os.path.join(g.CACHED_PROJECT_DIR, "key_id_map.json")
-    )
 
 
 def get_dataset_paths():
@@ -196,6 +157,27 @@ def copy_videos_from_cache_to_project(video_dataset_info):
     logger.info("Videos retrieved from cache")
 
 
+def download_src_project():
+    logger.info("Downloading source project to cache")
+    with g.PROGRESS_BAR(
+        message="Downloading source project to cache", total=g.PROJECT_INFO.items_count
+    ) as pbar:
+        g.PROGRESS_BAR.show()
+        download_to_cache(g.API, g.PROJECT_ID, progress_cb=pbar.update)
+        g.PROGRESS_BAR.hide()
+    logger.info("Project downloaded to cache")
+
+    logger.info("Retrieving source project from cache")
+    cache_size = get_cache_size(g.PROJECT_ID)
+    with g.PROGRESS_BAR(
+        message="Retrieving source project from cache", total=cache_size, is_size=True
+    ) as pbar:
+        g.PROGRESS_BAR.show()
+        copy_from_cache(g.PROJECT_ID, g.PROJECT_DIR, progress_cb=pbar.update)
+        g.PROGRESS_BAR.hide()
+    logger.info("Source project retrieved from cache")
+
+
 def download_dst_project():
     target_datasets = g.API.dataset.get_list(g.DST_PROJECT_ID, recursive=True)
     target_items = sum(ds.items_count for ds in target_datasets)
@@ -215,12 +197,5 @@ def download_dst_project():
 
 
 def download_project():
-    download_dst_project()
-    create_project_dir()
-    create_cache_project_dir()
-    video_dataset_info = get_dataset_paths()
-    download_videos_to_cache(video_dataset_info)
-    copy_videos_from_cache_to_project(video_dataset_info)
-
-    logger.info(f"Project downloaded to {g.PROJECT_DIR}")
+    download_src_project()
     return g.PROJECT_DIR
