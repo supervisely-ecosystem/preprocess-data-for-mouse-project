@@ -139,6 +139,7 @@ def download_videos_to_cache(video_dataset_info):
                 ann_infos = loop.run_until_complete(
                     g.API.video.annotation.download_bulk_async(video_ids)
                 )
+
                 for ann_info, cache_ann_path in zip(ann_infos, cache_ann_paths):
                     sly.json.dump_json_file(ann_info, cache_ann_path)
             pbar.update(len(filtered_batch))
@@ -164,8 +165,15 @@ def copy_videos_from_cache_to_project(video_dataset_info):
             cache_ds_dir = os.path.join(_get_cache_dir(g.PROJECT_ID), dataset_path)
             cache_video_path = os.path.join(cache_ds_dir, "video", video_metadata.name)
             cache_ann_path = os.path.join(cache_ds_dir, "ann", f"{video_metadata.name}.json")
-            if not os.path.exists(cache_video_path) or not os.path.exists(cache_ann_path):
+            if not os.path.exists(cache_video_path):
                 logger.warning(f"Video '{video_metadata.name}' not found in cache, skipping")
+                pbar.update(1)
+                continue
+
+            if not os.path.exists(cache_ann_path):
+                logger.warning(
+                    f"Annotation for video '{video_metadata.name}' not found in cache, skipping"
+                )
                 pbar.update(1)
                 continue
 
