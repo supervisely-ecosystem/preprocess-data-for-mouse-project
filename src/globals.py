@@ -11,7 +11,7 @@ if sly.is_development():
     load_dotenv(os.path.expanduser("~/supervisely.env"))
     # load_dotenv(os.path.expanduser("~/supervisely(dev).env"))
 
-API: sly.Api = sly.Api.from_env()
+API: sly.Api = sly.Api.from_env(100)
 
 # Environment variables
 TASK_ID: int = sly.env.task_id(raise_not_found=sly.is_production())
