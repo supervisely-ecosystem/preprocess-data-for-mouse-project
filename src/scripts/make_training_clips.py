@@ -277,16 +277,24 @@ def make_positives(input_dir: str, output_dir: str, min_size):
                 continue
 
             for tag, label in LABELS.items():
+                count_with_label_1 = len([i for i in infos if i[4] == 1])
+                if tag == "Self-Grooming" and count_with_label_1 > 200:
+                    continue  # TODO DEBUG: Only process TWITCH clips for now
                 curr_video_infos = make_pos_clips_for_tag(
                     video_file, ann_file, output_dir, min_size, tag, label
                 )
                 if len(curr_video_infos) == 0:
                     logger.debug(f"No clips found for video: {video_file}")
                 infos.extend(curr_video_infos)
-
             logger.info(f"Processed {i+1}/{len(paths)} videos for positive clips")
             pbar.update(1)
     g.PROGRESS_BAR.hide()
+
+    # count each label
+    label_counts = {label: 0 for label in LABELS.values()}
+    for info in infos:
+        label_counts[info[4]] += 1
+    logger.info(f"Label counts: {label_counts}")
     return infos
 
 
@@ -444,6 +452,9 @@ def make_training_clips(min_size=480):
     avg_lengths.to_csv(os.path.join(csv_path, "avg_lengths_positives.csv"))
 
     target_length = int(avg_lengths["total_frames"].mean() if not avg_lengths.empty else 300)
+    if avg_lengths.empty:
+        logger.warning("No positive clips found in avg_lengths. Defaulting target length to 300 frames.")
+        
     logger.info(f"Average target length for negatives: {target_length} frames")
 
     # Create negative clips
