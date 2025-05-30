@@ -183,7 +183,7 @@ def upload_train_videos() -> List[VideoInfo]:
                 all_clips[src_vid_id][clip_metadata.label] = []
             all_clips[src_vid_id][clip_metadata.label].append(clip_metadata)
 
-    move_empty_videos_to_test_set(training_videos, all_clips)
+    # move_empty_videos_to_test_set(training_videos, all_clips)
 
     if len(all_clips) > 0:
         with g.PROGRESS_BAR(
