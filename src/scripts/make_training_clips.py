@@ -277,9 +277,9 @@ def make_positives(input_dir: str, output_dir: str, min_size):
                 continue
 
             for tag, label in LABELS.items():
-                count_with_label_1 = len([i for i in infos if i[4] == 1])
-                if tag == "Self-Grooming" and count_with_label_1 > 200:
-                    continue  # TODO DEBUG: Only process TWITCH clips for now
+                # count_with_label_1 = len([i for i in infos if i[4] == 1])
+                # if tag == "Self-Grooming" and count_with_label_1 > 200:
+                #     continue  # TODO DEBUG: Only process TWITCH clips for now
                 curr_video_infos = make_pos_clips_for_tag(
                     video_file, ann_file, output_dir, min_size, tag, label
                 )
