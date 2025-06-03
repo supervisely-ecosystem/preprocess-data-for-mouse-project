@@ -273,7 +273,7 @@ def make_positives(input_dir: str, output_dir: str, min_size):
             try:
                 ann_file = video_file.parent.parent / f"ann/{video_file.name}.json"
                 if not ann_file.exists():
-                    logger.warn(f"Annotation file not found: {ann_file}")
+                    logger.warning(f"Annotation file not found: {ann_file}")
                     pbar.update(1)
                     continue
 
