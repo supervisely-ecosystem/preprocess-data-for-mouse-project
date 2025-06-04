@@ -1,18 +1,14 @@
 import os
-import src.globals as g
 from typing import List
-from supervisely import batched
-from supervisely.api.video.video_api import VideoInfo
-from supervisely import logger
-from src.scripts.cache import (
-    add_video_to_cache,
-    add_single_clip_to_cache,
-    upload_cache,
-)
+
+import src.globals as g
+from src.scripts.cache import add_single_clip_to_cache, add_video_to_cache, upload_cache
 from src.scripts.video_metadata import VideoMetaData
-from supervisely.project.video_project import VideoProject, VideoDataset
-from supervisely.project.project import OpenMode
+from supervisely import batched, logger
+from supervisely.api.video.video_api import VideoInfo
 from supervisely.io.fs import clean_dir
+from supervisely.project.project import OpenMode
+from supervisely.project.video_project import VideoDataset, VideoProject
 from supervisely.video_annotation.video_annotation import VideoAnnotation
 
 
@@ -83,6 +79,7 @@ def upload_test_videos() -> List[VideoInfo]:
                 video_metadata.source_video_info.hash for video_metadata in validated_batch
             ]
             video_paths = [video_metadata.split_path for video_metadata in validated_batch]
+            video_ann_paths = [video_metadata.split_ann_path for video_metadata in validated_batch]
 
             has_links = all(
                 video_metadata.source_video_info.link for video_metadata in validated_batch
@@ -109,6 +106,15 @@ def upload_test_videos() -> List[VideoInfo]:
                     names=video_names,
                     paths=video_paths,
                 )
+
+            logger.debug(f"Uploading {len(video_ann_paths)} video annotations")
+            video_ids = [video_info.id for video_info in uploaded_batch]
+            g.API.video.annotation.upload_paths(
+                video_ids=video_ids,
+                ann_paths=video_ann_paths,
+                project_meta=g.PROJECT_META,
+            )
+            logger.debug("Done uploading video annotations")
 
             for video_name, video_path, video_info in zip(video_names, video_paths, uploaded_batch):
                 if test_dataset_fs.item_exists(video_name):
