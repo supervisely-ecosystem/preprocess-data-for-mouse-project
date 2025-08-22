@@ -430,7 +430,7 @@ def make_training_clips(min_size=480):
     pos_infos = make_positives(input_dir=train_dir, output_dir=output_dir, min_size=min_size)
     if not pos_infos:
         logger.error("No positive clips created. Check annotations and videos.")
-        return None
+        raise RuntimeError("No positive clips created. Check annotations and videos.")
 
     pos_df = pd.DataFrame(pos_infos, columns=["orig_file", "clip_file", "start", "end", "label"])
     pos_csv_path = os.path.join(csv_path, "positives.csv")
