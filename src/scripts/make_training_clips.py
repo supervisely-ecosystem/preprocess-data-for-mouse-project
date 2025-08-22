@@ -1,15 +1,17 @@
-import os
-import subprocess
-import math
-import random
 import json
+import math
+import os
+import random
+import subprocess
+from pathlib import Path
+
 import pandas as pd
-import src.globals as g
 from supervisely import logger
 from supervisely.io.fs import clean_dir
 from supervisely.io.json import dump_json_file
-from pathlib import Path
 from supervisely.video_annotation.video_annotation import VideoAnnotation
+
+import src.globals as g
 from src.scripts.video_metadata import VideoMetaData
 
 
@@ -137,11 +139,11 @@ def extract_clip(video_path, start, end, width, height, fps, output_clip):
         raise
 
 
-def get_frame_ranges(ann_file: dict, tag: str):
+def get_frame_ranges(ann_file: dict, target_tag: str):
     frame_ranges = []
-    for ann in ann_file["tags"]:
-        if ann["name"] == tag:
-            frame_ranges.append(ann["frameRange"])
+    for video_tag in ann_file["tags"]:
+        if video_tag["name"].lower().startswith(target_tag.lower()):
+            frame_ranges.append(video_tag["frameRange"])
     return frame_ranges
 
 
@@ -223,7 +225,7 @@ def make_pos_clips_for_tag(
     with open(ann_file, "r") as f:
         ann = json.load(f)
 
-    ranges = get_frame_ranges(ann, tag=tag)
+    ranges = get_frame_ranges(ann, target_tag=tag)
     ranges = filter_ranges_outside_video(ranges, total_frames)
     ranges = merge_overlapping_ranges(ranges)
 
