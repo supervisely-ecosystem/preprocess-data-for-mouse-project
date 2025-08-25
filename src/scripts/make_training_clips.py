@@ -341,7 +341,7 @@ def make_neg_clips_for_tag(
         interval_start, interval_end = interval
         t = interval_start
         while t + clip_min_frames - 1 <= interval_end and cumulative_clip_frames < target_length:
-            available = interval_end - t + 1
+            available = math.floor(interval_end - t + 1)
             if available < clip_min_frames:
                 break
             clip_length = random.randint(clip_min_frames, min(clip_max_frames, available))
