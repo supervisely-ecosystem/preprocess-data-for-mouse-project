@@ -174,9 +174,9 @@ def split_range(
     clip_frames = end - start + 1
 
     if clip_frames == 1:
-        half = fps // 2
+        half = int(fps // 2)
         start = max(0, start - half)
-        end = min(total_frames - 1, start + fps - 1)
+        end = min(total_frames - 1, int(start + fps - 1))
         clip_frames = end - start + 1
 
     ten_sec_frames = int(max_clip_duration * fps)
@@ -344,7 +344,7 @@ def make_neg_clips_for_tag(
             available = interval_end - t + 1
             if available < clip_min_frames:
                 break
-            clip_length = random.randint(clip_min_frames, min(clip_max_frames, available))
+            clip_length = random.randint(clip_min_frames, min(clip_max_frames, int(available)))
             start_frame = t
             end_frame = t + clip_length - 1
             clip_name = f"{video_name}_clip_{clip_counter:03d}.mp4"
