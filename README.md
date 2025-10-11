@@ -19,7 +19,7 @@
 
 # Overview
 
-Application for preprocessing video data for training. Automates the process of preparing training and test data from video project, creating training clips from labeled videos, and applying a trained model to it. **The main purpose of this application is to prepare data in the specific format required by the [Train Mouse Action Recognition](../../../../../../supervisely-ecosystem/mouse-action-recognition/supervisely_integration/train) app for building models that can recognize different mouse behaviors in video.**
+Application for preprocessing video data for training. Automates the process of preparing training and test data from video project, creating training clips from labeled videos, and applying a trained model to it. **The main purpose of this application is to prepare data in the specific format required by the [Train Mouse Action Recognition](https://ecosystem.supervisely.com/apps/mouse-action-recognition/supervisely_integration/train) app for building models that can recognize different mouse behaviors in video.**
 
 **Key features:**
 
@@ -33,7 +33,7 @@ Application for preprocessing video data for training. Automates the process of 
 - Uploading processed data to new project called Training Data in current team on Supervisely server
 - Applying a detection model to uploaded videos
 - Caching system that prevents reprocessing of already processed videos when the application is rerun
-- Creating the exact data structure required for the [Mouse Action Recognition training application](../../../../../../supervisely-ecosystem/mouse-action-recognition/supervisely_integration/train)
+- Creating the exact data structure required for the [Mouse Action Recognition training application](https://ecosystem.supervisely.com/apps/mouse-action-recognition/supervisely_integration/train)
 
 After processing is complete, you will get a new project with name `[source project id] Training Data` which consists of 2 datasets: train and test.
 - **train dataset** contains 3 nested datasets with short video clips: 
@@ -50,7 +50,7 @@ The application maintains a cache that tracks which videos have been processed (
 
 **Step 2.** Connect to the trained mouse detection model
 
-Run [Serve RT-DETRv2](../../../../../../supervisely-ecosystem/rt-detrv2/supervisely_integration/serve) app and serve custom model with `mouse` class. Model must have only one class: `mouse`.
+Run [Serve RT-DETRv2](https://ecosystem.supervisely.com/apps/rt-detrv2/supervisely_integration/serve) app and serve custom model with `mouse` class. Model must have only one class: `mouse`.
 
 ![prepare-detector](https://github.com/supervisely-ecosystem/preprocess-data-for-mouse-project/releases/download/v0.0.1/prepare-detector.png)
 
