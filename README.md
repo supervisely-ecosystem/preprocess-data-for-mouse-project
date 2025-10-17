@@ -9,7 +9,7 @@
   <a href="#How-to-Run">How to Run</a> •
 </p>
 
-[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](../../../../supervisely-ecosystem/preprocess-data-for-mouse-project)
+[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](https://ecosystem.supervisely.com/apps/preprocess-data-for-mouse-project)
 [![](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://supervisely.com/slack)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/supervisely-ecosystem/preprocess-data-for-mouse-project)
 [![views](https://app.supervisely.com/img/badges/views/supervisely-ecosystem/preprocess-data-for-mouse-project.png)](https://supervisely.com)
