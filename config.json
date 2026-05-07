@@ -1,18 +1,24 @@
 {
-    "name": "Preprocess Data for Mouse Action Recognition",
-    "type": "app",
-    "version": "2.0.0",
-    "categories": ["videos"],
-    "description": "Prepares training data to use in train mouse action recognition app",
-    "docker_image": "supervisely/base-py-sdk:6.73.564",
-    "instance_version": "6.15.60",
-    "entrypoint": "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000",
-    "port": 8000,
-    "task_location": "workspace_tasks",
-    "poster": "https://github.com/supervisely-ecosystem/preprocess-data-for-mouse-project/releases/download/v0.0.1/poster_mouse_preproc-black.jpg",
-    "icon": "https://github.com/supervisely-ecosystem/preprocess-data-for-mouse-project/releases/download/v0.0.1/icon_mouse_prepare-black.jpg",
-    "icon_cover": true,
-    "headless": false,
-    "icon_background": "#FFFFFF",
-    "context_menu": {"target": ["videos_project"]}
+  "name": "Preprocess Data for Mouse Action Recognition",
+  "type": "app",
+  "version": "2.0.0",
+  "categories": [
+    "videos"
+  ],
+  "description": "Prepares training data to use in train mouse action recognition app",
+  "docker_image": "supervisely/base-py-sdk-hardened:6.73.564",
+  "instance_version": "6.15.60",
+  "entrypoint": "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000",
+  "port": 8000,
+  "task_location": "workspace_tasks",
+  "poster": "https://github.com/supervisely-ecosystem/preprocess-data-for-mouse-project/releases/download/v0.0.1/poster_mouse_preproc-black.jpg",
+  "icon": "https://github.com/supervisely-ecosystem/preprocess-data-for-mouse-project/releases/download/v0.0.1/icon_mouse_prepare-black.jpg",
+  "icon_cover": true,
+  "headless": false,
+  "icon_background": "#FFFFFF",
+  "context_menu": {
+    "target": [
+      "videos_project"
+    ]
+  }
 }
