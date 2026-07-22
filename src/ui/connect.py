@@ -1,6 +1,7 @@
-import src.globals as g
+import supervisely as sly
 from supervisely.app.widgets import SelectAppSession
-from supervisely.nn.inference.session import Session
+
+import src.globals as g
 from src.ui.base_step import BaseStep
 
 
@@ -25,8 +26,26 @@ class ConnectStep(BaseStep):
             self.show_validation("Please select a model", "error")
             return False
 
-        session = Session(g.API, session_id)
-        model_meta = session.get_model_meta()
+        try:
+            model_meta_json = g.API.task.send_request(
+                session_id,
+                "get_output_classes_and_tags",
+                data={},
+                timeout=10,
+                retries=1,
+                raise_error=True,
+            )
+            model_meta = sly.ProjectMeta.from_json(model_meta_json)
+        except Exception:
+            sly.logger.warning(
+                "Could not get metadata from the selected model session",
+                exc_info=True,
+            )
+            self.show_validation(
+                "Could not connect to the selected model. Make sure it is deployed and try again.",
+                "error",
+            )
+            return False
 
         if len(model_meta.obj_classes) != 1:
             self.show_validation("Model must have exactly one class with name 'mouse'", "error")
