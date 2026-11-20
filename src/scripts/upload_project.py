@@ -27,17 +27,6 @@ def validate_batch(batch: List[VideoInfo], is_test: bool, pbar) -> List[VideoMet
     return validated_batch
 
 
-def move_empty_videos_to_test_set(training_videos: dict, all_clips: dict):
-    empty_videos = training_videos.keys() - all_clips.keys()
-    if len(empty_videos) == 0:
-        return
-    logger.info(f"Found {len(empty_videos)} videos with no clips")
-    for video_id in empty_videos:
-        g.TRAIN_VIDEOS.remove(training_videos[video_id])
-        g.TEST_VIDEOS.append(training_videos[video_id])
-    logger.info(f"Moved {len(empty_videos)} videos with no clips to test set")
-
-
 def get_or_create_dataset_fs(project: VideoProject, dataset_name: str, parent_path: str = ""):
     if parent_path != "":
         ds_path = os.path.join(parent_path, VideoDataset.datasets_dir_name, dataset_name)
@@ -188,8 +177,6 @@ def upload_train_videos() -> List[VideoInfo]:
             if clip_metadata.label not in all_clips[src_vid_id]:
                 all_clips[src_vid_id][clip_metadata.label] = []
             all_clips[src_vid_id][clip_metadata.label].append(clip_metadata)
-
-    move_empty_videos_to_test_set(training_videos, all_clips)
 
     if len(all_clips) > 0:
         with g.PROGRESS_BAR(
