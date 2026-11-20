@@ -2,6 +2,7 @@ import json
 import math
 import os
 import random
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -409,6 +410,28 @@ def unique_video_names(paths: list):
     return unique_paths
 
 
+def move_unclipped_videos_to_test_set():
+    """Move training videos that got no clips to the test set while their files still exist."""
+    unclipped = [video for video in g.TRAIN_VIDEOS if not video.clips]
+    if len(unclipped) == 0:
+        return
+    logger.info(f"Found {len(unclipped)} videos with no clips")
+    test_vid_dir = os.path.join(g.SPLIT_PROJECT_DIR, "test", "video")
+    test_ann_dir = os.path.join(g.SPLIT_PROJECT_DIR, "test", "ann")
+    os.makedirs(test_vid_dir, exist_ok=True)
+    os.makedirs(test_ann_dir, exist_ok=True)
+    for video_metadata in unclipped:
+        dst_video_path = os.path.join(test_vid_dir, os.path.basename(video_metadata.split_path))
+        dst_ann_path = os.path.join(test_ann_dir, os.path.basename(video_metadata.split_ann_path))
+        shutil.move(video_metadata.split_path, dst_video_path)
+        shutil.move(video_metadata.split_ann_path, dst_ann_path)
+        video_metadata.path = dst_video_path
+        video_metadata.set_split_path(dst_video_path)
+        g.TRAIN_VIDEOS.remove(video_metadata)
+        g.TEST_VIDEOS.append(video_metadata)
+    logger.info(f"Moved {len(unclipped)} videos with no clips to test set")
+
+
 def remove_train_videos():
     train_vid_dir = os.path.join(g.SPLIT_PROJECT_DIR, "train", "video")
     train_ann_dir = os.path.join(g.SPLIT_PROJECT_DIR, "train", "ann")
@@ -429,8 +452,13 @@ def make_training_clips(min_size=480):
     logger.info("Creating positive clips...")
     pos_infos = make_positives(input_dir=train_dir, output_dir=output_dir, min_size=min_size)
     if not pos_infos:
-        logger.error("No positive clips created. Check annotations and videos.")
-        raise RuntimeError("No positive clips created. Check annotations and videos.")
+        logger.warning(
+            "No positive clips created: none of the training videos has a tag whose name "
+            "starts with 'Self-Grooming' or 'Head/Body TWITCH'"
+        )
+        move_unclipped_videos_to_test_set()
+        remove_train_videos()
+        return None
 
     pos_df = pd.DataFrame(pos_infos, columns=["orig_file", "clip_file", "start", "end", "label"])
     pos_csv_path = os.path.join(csv_path, "positives.csv")
@@ -500,6 +528,8 @@ def make_training_clips(min_size=480):
 
             clip.path = row["clip_file"]
             source_video.clips.append(clip)
+
+    move_unclipped_videos_to_test_set()
 
     # Remove original train videos
     remove_train_videos()
