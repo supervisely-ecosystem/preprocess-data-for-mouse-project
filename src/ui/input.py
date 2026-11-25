@@ -3,7 +3,7 @@ from supervisely.app.widgets import Field, ProjectThumbnail, Text
 from supervisely.project.download import is_cached
 
 import src.globals as g
-from src.scripts.cache import download_cache
+from src.scripts.cache import MissingCacheError, download_cache
 from src.scripts.video_metadata import VideoMetaData
 from src.ui.base_step import BaseStep
 
@@ -49,7 +49,14 @@ class InputStep(BaseStep):
     def check_project(self):
         logger.info("Fetching Project Data")
 
-        cache_data = download_cache()
+        g.VIDEOS_TO_UPLOAD = []
+        g.VIDEOS_TO_DETECT = []
+        try:
+            cache_data = download_cache()
+        except MissingCacheError as e:
+            logger.error(str(e))
+            self.show_validation(str(e), "error")
+            return
         source_datasets = g.API.dataset.get_list(g.PROJECT_ID, recursive=True)
         target_datasets = g.API.dataset.get_list(g.DST_PROJECT_ID, recursive=True)
         total_datasets = len(source_datasets) + len(target_datasets)
@@ -74,9 +81,6 @@ class InputStep(BaseStep):
                     target_videos_by_id[str(v.id)] = v
                 pbar.update(1)
         g.PROGRESS_BAR_PROJECT.hide()
-
-        g.VIDEOS_TO_UPLOAD = []
-        g.VIDEOS_TO_DETECT = []
 
         # Determine videos to upload or detect
         videos_cache = cache_data.get("videos", {})

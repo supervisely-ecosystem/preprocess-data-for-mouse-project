@@ -33,7 +33,25 @@ DST_PROJECT_INFO = API.project.get_info_by_id(DST_PROJECT_INFO.id)
 DST_PROJECT_ID = DST_PROJECT_INFO.id
 DST_PROJECT_META: sly.ProjectMeta = sly.ProjectMeta.from_json(API.project.get_meta(DST_PROJECT_ID))
 DST_PROJECT_PATH = _get_cache_dir(DST_PROJECT_ID)
-API.project.update_meta(DST_PROJECT_ID, PROJECT_META.to_json())
+
+
+def _add_missing_meta(dst_meta: sly.ProjectMeta, src_meta: sly.ProjectMeta) -> sly.ProjectMeta:
+    # Only add what is missing: replacing the meta would drop classes that exist only
+    # in the target project (e.g. "mouse"), and the server disables them with their figures.
+    for obj_class in src_meta.obj_classes:
+        if dst_meta.get_obj_class(obj_class.name) is None:
+            dst_meta = dst_meta.add_obj_class(obj_class)
+    for tag_meta in src_meta.tag_metas:
+        if dst_meta.get_tag_meta(tag_meta.name) is None:
+            dst_meta = dst_meta.add_tag_meta(tag_meta)
+    return dst_meta
+
+
+_merged_meta = _add_missing_meta(DST_PROJECT_META, PROJECT_META)
+if len(_merged_meta.obj_classes) != len(DST_PROJECT_META.obj_classes) or len(
+    _merged_meta.tag_metas
+) != len(DST_PROJECT_META.tag_metas):
+    DST_PROJECT_META = API.project.update_meta(DST_PROJECT_ID, _merged_meta.to_json())
 
 
 # Directory paths

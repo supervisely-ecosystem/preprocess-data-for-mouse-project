@@ -6,6 +6,7 @@ from supervisely.geometry.rectangle import Rectangle
 from supervisely.io.fs import mkdir
 from supervisely.nn.model.model_api import ModelAPI
 from supervisely.project.project import OpenMode
+from supervisely.project.project_meta import ProjectMeta
 from supervisely.project.video_project import VideoDataset, VideoProject
 from supervisely.video_annotation.frame import Frame
 from supervisely.video_annotation.video_annotation import (
@@ -84,6 +85,7 @@ def find_video_dataset_in_dst_project_fs(
 def apply_detector():
     detector = ModelAPI(g.API, g.SESSION_ID)
     model_meta = detector.get_model_meta()
+    g.DST_PROJECT_META = ProjectMeta.from_json(g.API.project.get_meta(g.DST_PROJECT_ID))
     mouse_obj_class = g.DST_PROJECT_META.get_obj_class("mouse")
     if mouse_obj_class is None:
         update_dst_project_meta()
