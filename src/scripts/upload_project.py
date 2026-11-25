@@ -224,7 +224,8 @@ def upload_train_videos() -> List[VideoInfo]:
                             ):
                                 clip_metadata.clip_id = uploaded_clip.id
                                 clip_metadata.train_data_id = uploaded_clip.id
-                                add_single_clip_to_cache(clip_metadata)
+                                add_single_clip_to_cache(clip_metadata, upload=False)
+                            upload_cache()
 
                             pbar_2.update(len(validated_batch))
                             g.VIDEOS_TO_DETECT.extend(uploaded_batch)

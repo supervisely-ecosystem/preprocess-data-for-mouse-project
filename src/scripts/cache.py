@@ -21,19 +21,32 @@ def init_cache() -> Dict[str, Any]:
     return cache_data
 
 
+class MissingCacheError(Exception):
+    pass
+
+
 def download_cache() -> Dict[str, Any]:
     exists = g.API.file.exists(g.TEAM_ID, g.REMOTE_CACHE_PATH)
     if exists:
         g.API.file.download(g.TEAM_ID, g.REMOTE_CACHE_PATH, g.LOCAL_CACHE_PATH)
         return load_cache()
-    else:
-        return init_cache()
+
+    # Starting from an empty cache would upload every video and clip again as duplicates
+    if not os.path.exists(g.LOCAL_CACHE_PATH):
+        dst_datasets = g.API.dataset.get_list(g.DST_PROJECT_ID, recursive=True)
+        dst_items_count = sum(ds.items_count or 0 for ds in dst_datasets)
+        if dst_items_count > 0:
+            raise MissingCacheError(
+                f"Progress file '{g.REMOTE_CACHE_PATH}' was not found in Team Files, "
+                f"but the target project '{g.DST_PROJECT_NAME}' already has {dst_items_count} items. "
+                "Processing was stopped to avoid uploading duplicate clips. "
+                "Restore the progress file, or remove or rename the target project to start over."
+            )
+    return init_cache()
 
 
 def upload_cache() -> None:
-    exists = g.API.file.exists(g.TEAM_ID, g.REMOTE_CACHE_PATH)
-    if exists:
-        g.API.file.remove(g.TEAM_ID, g.REMOTE_CACHE_PATH)
+    # Upload overwrites the file in place: removing it first would lose it if the app stopped in between
     g.API.file.upload(g.TEAM_ID, g.LOCAL_CACHE_PATH, g.REMOTE_CACHE_PATH)
 
 
@@ -114,7 +127,7 @@ def add_videos_to_cache(
     upload_cache()
 
 
-def add_single_clip_to_cache(clip_info: VideoMetaData) -> None:
+def add_single_clip_to_cache(clip_info: VideoMetaData, upload: bool = True) -> None:
     if not hasattr(clip_info, "source_video") or not clip_info.source_video:
         logger.warning(f"Clip {clip_info.name} has no source video")
         return
@@ -124,7 +137,7 @@ def add_single_clip_to_cache(clip_info: VideoMetaData) -> None:
     video_id = str(source_video.video_id)
 
     if video_id not in cache_data.get("videos", {}):
-        add_video_to_cache(source_video)
+        add_video_to_cache(source_video, upload=upload)
         cache_data = load_cache()
 
     clip_id = str(getattr(clip_info, "clip_id", hash(clip_info.name)))
@@ -148,7 +161,8 @@ def add_single_clip_to_cache(clip_info: VideoMetaData) -> None:
     cache_data["videos"][video_id].setdefault("clips", {})[clip_id] = clip_data
 
     save_cache(cache_data)
-    upload_cache()
+    if upload:
+        upload_cache()
 
 
 def add_clips_to_cache(video_info: VideoMetaData) -> None:
